@@ -145,7 +145,7 @@ health_check() {
     return 1
   fi
 
-  while [ $attempt -le $max_attempts ]; do
+  while [ $attempt -le "$max_attempts" ]; do
     [ "$silent" != "true" ] && log "INFO" "Health check attempt $attempt of $max_attempts"
 
     # Use timeout to prevent hanging
@@ -161,7 +161,7 @@ health_check() {
       [ "$silent" != "true" ] && log "WARNING" "Health check failed: PING command timed out or failed"
     fi
 
-    if [ $attempt -lt $max_attempts ]; then
+    if [ $attempt -lt "$max_attempts" ]; then
       [ "$silent" != "true" ] && log "INFO" "Waiting 1 second before retry..."
       sleep 1
     fi
@@ -214,16 +214,10 @@ highlight_connection() {
 # ===============
 # Launches the Redis container with validation and persistence.
 start_container() {
-  local data_dir="$1"
+  local data_dir="${1:-$DEFAULT_DATA_DIR}"
   data_dir=$(sanitize "$data_dir")
 
   validate_prerequisites
-
-  # Handle data directory - ensure it's never empty
-  if [ -z "$data_dir" ]; then
-    data_dir="$DEFAULT_DATA_DIR"
-    log "INFO" "Using default temporary data directory: $data_dir"
-  fi
 
   # Create and set permissions if directory doesn't exist
   if [ ! -d "$data_dir" ]; then
@@ -285,9 +279,9 @@ stop_container() {
 # =================
 # Restarts the container with minimal downtime.
 restart_container() {
-  local data_dir="$1"
-
   stop_container
+  local data_dir="${1:-$DEFAULT_DATA_DIR}"
+  data_dir=$(sanitize "$data_dir")
   start_container "$data_dir"
   log "INFO" "Container $CONTAINER_NAME restarted."
 }
@@ -361,7 +355,7 @@ usage() {
   echo "  restart [data_dir]  - Restart Redis container"
   echo "  status              - Show detailed status report"
   echo "  health [quiet]      - Check Redis server health (use 'quiet' for script output)"
-  echo "  reset               - Reset default temporary data (with confirmation)"
+  echo "  reset [data_dir]    - Reset default temporary data (with confirmation)"
   echo "  help                - Show this help"
   echo ""
   echo "Examples:"
@@ -399,7 +393,7 @@ case "$command" in
     health_command "$1" # Pass optional "quiet" flag
     ;;
   reset)
-    reset_data
+    reset_data "$1"
     ;;
   help)
     usage
