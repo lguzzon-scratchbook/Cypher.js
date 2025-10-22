@@ -1,26 +1,10 @@
 {
-  "name": "cypher.js",
-  "version": "1.0.0",
+  "author": "Niclas Kjäll-Ohlsson",
+  "bugs": {
+    "url": "https://github.com/niclasko/Cypher.js/issues"
+  },
   "description": "Cypher graph database for Javascript",
-  "main": "js/Cypher.js",
-  "scripts": {
-    "test": "bash js/tests/scripts/test-runner.sh",
-    "test:redis": "bash js/tests/scripts/test-runner.sh --adapter redis",
-    "test:inmemory": "bash js/tests/scripts/test-runner.sh --adapter inmemory",
-    "test:filesystem": "bash js/tests/scripts/test-runner.sh --adapter filesystem",
-    "test:gundb": "bash js/tests/scripts/test-runner.sh --adapter gundb",
-    "test:all": "bash js/tests/scripts/test-runner.sh --adapter all",
-    "test:verbose": "bash js/tests/scripts/test-runner.sh --verbose",
-    "redis:start": "bash js/tests/scripts/redisManager.sh start",
-    "redis:stop": "bash js/tests/scripts/redisManager.sh stop",
-    "redis:restart": "bash js/tests/scripts/redisManager.sh restart",
-    "redis:status": "bash js/tests/scripts/redisManager.sh status",
-    "redis:health": "bash js/tests/scripts/redisManager.sh health"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/niclasko/Cypher.js.git"
-  },
+  "homepage": "https://github.com/niclasko/Cypher.js#readme",
   "keywords": [
     "graph",
     "database",
@@ -29,14 +13,31 @@
     "query",
     "javascript"
   ],
-  "author": "Niclas Kjäll-Ohlsson",
   "license": "GPL-3.0-or-later",
-  "bugs": {
-    "url": "https://github.com/niclasko/Cypher.js/issues"
-  },
-  "homepage": "https://github.com/niclasko/Cypher.js#readme",
+  "main": "js/Cypher.js",
+  "name": "cypher.js",
   "optionalDependencies": {
-    "gun": "^0.2020.1240",
-    "redis": "^4.7.1"
-  }
+    "gun": "^0.2020.1241",
+    "redis": "^5.8.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/niclasko/Cypher.js.git"
+  },
+  "scripts": {
+    "_:update": "npx --yes -p npm-check-updates ncu -u ; npm install",
+    "redis:health": "bash js/tests/scripts/redisManager.sh health",
+    "redis:restart": "bash js/tests/scripts/redisManager.sh restart",
+    "redis:start": "bash js/tests/scripts/redisManager.sh start",
+    "redis:status": "bash js/tests/scripts/redisManager.sh status",
+    "redis:stop": "bash js/tests/scripts/redisManager.sh stop",
+    "test": "bash js/tests/scripts/test-runner.sh",
+    "test:all": "bash js/tests/scripts/test-runner.sh --adapter all",
+    "test:filesystem": "bash js/tests/scripts/test-runner.sh --adapter filesystem",
+    "test:gundb": "bash js/tests/scripts/test-runner.sh --adapter gundb",
+    "test:inmemory": "bash js/tests/scripts/test-runner.sh --adapter inmemory",
+    "test:redis": "bash js/tests/scripts/test-runner.sh --adapter redis",
+    "test:verbose": "bash js/tests/scripts/test-runner.sh --verbose"
+  },
+  "version": "1.0.0"
 }
