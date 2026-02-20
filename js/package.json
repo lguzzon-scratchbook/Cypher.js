@@ -1,0 +1,30 @@
+{
+  "name": "cypher-ng",
+  "version": "1.0.0",
+  "description": "Modular ES6+ refactored version of Cypher.js graph query engine",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
+  },
+  "keywords": ["cypher", "graph", "database", "query"],
+  "author": "",
+  "license": "GPL-3.0-or-later",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "modules/**/*.js",
+      "!node_modules/**"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "moduleFileExtensions": ["js", "mjs", "cjs"]
+  }
+}
