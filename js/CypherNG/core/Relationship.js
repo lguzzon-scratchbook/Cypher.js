@@ -113,7 +113,7 @@ class Relationship {
 
   setProperty(key, expression) {
     this._properties[key] = null;
-    this._propertyExpressions[key] = expression.value;
+    this._propertyExpressions[key] = expression.value.bind(expression);
   }
 
   bindProperty(key) {

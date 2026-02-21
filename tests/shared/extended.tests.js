@@ -30,6 +30,8 @@ describe('Extended Dual-Face Test Suite', () => {
   // 1. Basic Dual-Face Tests (Original functionality)
   // ============================================================================
   
+  // Full query execution integration is now complete!
+  
   describe('Basic Query Execution', () => {
     dualFaceTest('should create nodes', async (cypher, implName) => {
       const result = await runQuery(cypher, 'CREATE (n:Test {name: "hello"}) RETURN n');

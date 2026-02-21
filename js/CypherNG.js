@@ -178,7 +178,14 @@ function CypherJS() {
       if (this._overriddenValue) return this._overriddenValue;
       try {
         if (this._object && this._object.getData) {
-          return this._object.getData().get(asKey);
+          const data = this._object.getData();
+          if (data && data.get) {
+            return data.get(asKey);
+          }
+          // If getData returns null (e.g., for newly created nodes), use the object directly
+          if (this._object.get) {
+            return this._object.get(asKey);
+          }
         }
       } catch (e) {
         // Ignore
@@ -416,7 +423,43 @@ function CypherJS() {
     this.variables = function() { return this._previousOperation ? this._previousOperation.variables() : []; };
     this.doIt = function() {
       for (let i = 0; i < this._setters.length; i++) {
-        // Apply setter logic
+        const setter = this._setters[i];
+        // Get the actual matched object from the variable
+        let templateObj = setter.variable.getObject();
+        let obj = templateObj;
+        
+        // If the object has getData(), it's a pattern node/rel - get the actual DB object
+        if (templateObj && templateObj.getData) {
+          obj = templateObj.getData();
+        }
+        
+        if (setter.type === 'label') {
+          // Set label on node
+          if (obj && setter.labelExpression && setter.labelExpression.value) {
+            const label = setter.labelExpression.value();
+            if (obj.setLabel) obj.setLabel(label, obj.id());
+          }
+        } else if (setter.type === 'type') {
+          // Set type on relationship
+          if (obj && setter.typeExpression && setter.typeExpression.value) {
+            const type = setter.typeExpression.value();
+            if (obj.setType) obj.setType(type);
+          }
+        } else if (setter.type === 'map') {
+          // Set multiple properties from map
+          if (obj && setter.mapExpression && setter.mapExpression.value) {
+            const map = setter.mapExpression.value();
+            if (map && obj.setProperties) obj.setProperties(map);
+          }
+        } else {
+          // Set single property
+          if (obj && setter.propertyKey && setter.expression && setter.expression.value) {
+            const value = setter.expression.value();
+            if (obj._properties) {
+              obj._properties[setter.propertyKey] = value;
+            }
+          }
+        }
       }
       if (this._nextOperation && this._nextOperation.doIt) {
         this._nextOperation.doIt();
@@ -427,7 +470,10 @@ function CypherJS() {
         this._nextOperation.finish();
       }
     };
-    this.run = function() { throw new Error('Set-operation cannot be first in statement.'); };
+    this.run = function() {
+      this.doIt();
+      this.finish();
+    };
     this.type = function() { return this.constructor.name; };
   }
 
@@ -469,8 +515,10 @@ function CypherJS() {
       for (let i = 0; i < this._patterns.length; i++) {
         this._patterns[i].create();
       }
-      if (this._nextOperation && this._nextOperation.finish) {
-        this._nextOperation.finish();
+      if (this._nextOperation && this._nextOperation.run) {
+        this._nextOperation.run();
+      } else if (this._statement && this._statement.success) {
+        this._statement.success();
       }
     };
     this.type = function() { return this.constructor.name; };
@@ -515,8 +563,10 @@ function CypherJS() {
       for (let i = 0; i < this._patterns.length; i++) {
         this._patterns[i].match();
       }
-      if (this._nextOperation && this._nextOperation.finish) {
-        this._nextOperation.finish();
+      if (this._nextOperation && this._nextOperation.run) {
+        this._nextOperation.run();
+      } else if (this._statement && this._statement.success) {
+        this._statement.success();
       }
     };
     this.type = function() { return this.constructor.name; };
@@ -560,8 +610,10 @@ function CypherJS() {
       for (let i = 0; i < this._patterns.length; i++) {
         this._patterns[i].merge();
       }
-      if (this._nextOperation && this._nextOperation.finish) {
-        this._nextOperation.finish();
+      if (this._nextOperation && this._nextOperation.run) {
+        this._nextOperation.run();
+      } else if (this._statement && this._statement.success) {
+        this._statement.success();
       }
     };
     this.type = function() { return this.constructor.name; };
@@ -601,7 +653,22 @@ function CypherJS() {
     this.setDistinct = function() { this._isDistinct = true; };
     this.variables = function() { return this._previousOperation ? this._previousOperation.variables() : []; };
     this.doIt = function() {
-      // Implementation
+      // Process return items and add to output
+      if (this._returnItems.length > 0) {
+        // Aggregation is already done during pattern matching
+        // Just output the final values
+        
+        this._statement.addOutputRecord();
+        for (let i = 0; i < this._returnItems.length; i++) {
+          const item = this._returnItems[i];
+          const expr = item._expression;
+          const alias = item._alias || ('column_' + i);
+          if (expr && expr.value) {
+            const value = expr.value();
+            this._statement.addOutputEntry(alias, value, i);
+          }
+        }
+      }
       if (this._nextOperation && this._nextOperation.doIt) {
         this._nextOperation.doIt();
       }
@@ -733,9 +800,12 @@ function CypherJS() {
   function GroupBy() {
     this._reducers = [];
     this.addReducer = function() {
-      const reducer = { map: [], reduce: function() {} };
+      const reducer = { map: [], reduce: function() {}, result: undefined };
       this._reducers.push(reducer);
       return reducer;
+    };
+    this.getReducer = function(id) {
+      return this._reducers[id];
     };
     this.map = function(root) {
       // Implementation
@@ -852,6 +922,9 @@ function CypherJS() {
   const parser = new Parser(this);
   let dataDownloadProxy = null;
 
+  // Make parser accessible for expression retrieval
+  this.parser = function() { return parser; };
+
   // Public API methods
   this.execute = function(statementText, successCallback, errorCallback) {
     statement.clear();
@@ -927,8 +1000,13 @@ function CypherJS() {
   };
 
   this.expression = function(expr) {
-    if (statement.context() && statement.context().expression) {
-      statement.context().expression(expr);
+    if (statement.context() && statement.context().addReturnItem) {
+      // Get expression from parser if not provided
+      const expression = expr || parser.getExpression();
+      if (expression) {
+        const alias = expression.getAlias ? expression.getAlias() : null;
+        statement.context().addReturnItem(new ReturnItem(expression, alias));
+      }
     }
     return this;
   };
@@ -993,6 +1071,15 @@ function CypherJS() {
   };
 
   this.as = function(alias) {
+    // Update the alias of the last return item if in a Return/With context
+    const ctx = statement.context();
+    if (ctx && ctx._returnItems && ctx._returnItems.length > 0) {
+      const lastItem = ctx._returnItems[ctx._returnItems.length - 1];
+      if (lastItem) {
+        lastItem._alias = alias;
+      }
+    }
+    // Also try to set on last object if it supports it
     const last = this.lastObject();
     if (last && last.setAlias) {
       last.setAlias(alias);

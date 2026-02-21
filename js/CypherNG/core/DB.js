@@ -373,11 +373,23 @@ class DB {
     const nodeIds = this._getMatchingNodeIds(node, merge);
     
     if (nodeIds && nodeIds.length) {
-      for (let i = 0; i < nodeIds.length; i++) {
-        const nodeId = nodeIds[i];
-        // Process each matching node
-        const result = this._processNode(node, nodeId, merge, pathExpansionDepth, i);
+      // Check if this node has relationships
+      const hasRelationships = node.outgoingRelationship && node.outgoingRelationship() ||
+                               node.incomingRelationship && node.incomingRelationship();
+      
+      if (hasRelationships) {
+        // For relationship patterns, only process the first matching node
+        // to avoid overwriting matched nodes
+        const nodeId = nodeIds[0];
+        const result = this._processNode(node, nodeId, merge, pathExpansionDepth, 0);
         if (result !== undefined) return result;
+      } else {
+        // For simple node patterns, process all matches for aggregation
+        for (let i = 0; i < nodeIds.length; i++) {
+          const nodeId = nodeIds[i];
+          const result = this._processNode(node, nodeId, merge, pathExpansionDepth, i);
+          if (result !== undefined) return result;
+        }
       }
     }
 
@@ -432,12 +444,16 @@ class DB {
     return nodeIds;
   }
 
-  _processNode(node, nodeId, merge, pathExpansionDepth, nodeIdIndex) {
+  _processNode(node, nodeId, merge, pathExpansionDepth, nodeIdIndex, isFirstNode = true) {
     // Process node without relationships
     if (!node.incomingRelationship || !node.incomingRelationship()) {
       if (!node.outgoingRelationship || !node.outgoingRelationship()) {
         const matchedNode = this.getNodeById(nodeId);
         if (node.addMatchedNode) node.addMatchedNode(matchedNode);
+        
+        // Trigger aggregation for this match
+        this._triggerAggregation();
+        
         if (node.getPattern && node.getPattern().usedAsCondition()) {
           return this._conveyorBelt(node, merge, pathExpansionDepth);
         } else {
@@ -448,13 +464,83 @@ class DB {
 
     // Process outgoing relationships
     if (node.outgoingRelationship && node.outgoingRelationship()) {
-      // Implementation for relationship matching
+      const rel = node.outgoingRelationship();
+      const relType = rel.getType ? rel.getType() : null;
+      
+      // Get all relationships from this node
+      const relationshipIds = this.lookupRelationshipIdsByNodeId(nodeId);
+      
+      for (const relId of relationshipIds) {
+        const relationship = this.getRelationshipById(relId);
+        if (!relationship) continue;
+        
+        // Check if relationship type matches
+        if (relType && relationship.getType() !== relType) continue;
+        
+        // Get the target node
+        const toNode = relationship.getToNode ? relationship.getToNode() : null;
+        if (!toNode) continue;
+        
+        // Match the end node
+        const nextNode = node.nextNode ? node.nextNode() : null;
+        if (nextNode) {
+          // Check if end node matches the pattern
+          if (this._nodeMatchesPattern(toNode, nextNode)) {
+            // Only set the start node matched if this is the first node in the chain
+            if (isFirstNode) {
+              const matchedNode = this.getNodeById(nodeId);
+              if (node.addMatchedNode) node.addMatchedNode(matchedNode);
+            }
+            if (rel.addMatchedRelationship) rel.addMatchedRelationship(relationship);
+            if (nextNode.addMatchedNode) nextNode.addMatchedNode(toNode);
+            
+            // Trigger aggregation for this match
+            this._triggerAggregation();
+            
+            // Continue with next node in pattern
+            if (nextNode.nextNode && nextNode.nextNode()) {
+              this._processNode(nextNode, toNode.id(), merge, pathExpansionDepth, 0, false);
+            } else {
+              // End of pattern - trigger output
+              if (node.getPattern && node.getPattern().finish) {
+                node.getPattern().finish();
+              }
+            }
+            
+            // Only process the first matching relationship for the first node
+            if (isFirstNode) {
+              return;
+            }
+          }
+        }
+      }
     }
 
     // Process incoming relationships
     if (node.incomingRelationship && node.incomingRelationship()) {
       // Implementation for incoming relationship processing
     }
+  }
+
+  _nodeMatchesPattern(node, patternNode) {
+    // Check if node matches the pattern criteria
+    const patternLabels = patternNode.labels ? patternNode.labels() : {};
+    const nodeLabels = node.labels ? node.labels() : {};
+    
+    // Check labels
+    for (const label in patternLabels) {
+      if (!nodeLabels[label]) return false;
+    }
+    
+    // Check properties
+    const patternProps = patternNode.getProperties ? patternNode.getProperties() : {};
+    const nodeProps = node.getProperties ? node.getProperties() : {};
+    
+    for (const key in patternProps) {
+      if (nodeProps[key] !== patternProps[key]) return false;
+    }
+    
+    return true;
   }
 
   _conveyorBelt(node, merge, pathExpansionDepth) {
@@ -469,6 +555,21 @@ class DB {
         return node.nextAction ? node.nextAction() : null;
       } else {
         if (node.nextAction) node.nextAction();
+      }
+    }
+  }
+
+  _triggerAggregation() {
+    // Trigger aggregation on the statement's Return operation
+    if (this._engine && this._engine.statement) {
+      const stmt = this._engine.statement();
+      const ctx = stmt.context();
+      if (ctx && ctx._reduceExpressions && ctx._reduceExpressions.length > 0) {
+        for (const expr of ctx._reduceExpressions) {
+          if (expr.aggregate) {
+            expr.aggregate();
+          }
+        }
       }
     }
   }

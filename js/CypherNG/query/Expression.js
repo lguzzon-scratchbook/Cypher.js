@@ -27,7 +27,9 @@ class Expression {
       context.addReduceExpression(this);
       for (let i = 0; i < aggregationFunctions.length; i++) {
         aggregationFunctions[i].setGroupBy(context.getGroupBy());
-        aggregationFunctions[i].setReducer(context.getGroupBy().addReducer());
+        const reducerId = context.getGroupBy()._reducers.length;
+        context.getGroupBy().addReducer();
+        aggregationFunctions[i].setReducer(reducerId);
         aggregationFunctions[i].initialize();
       }
     }

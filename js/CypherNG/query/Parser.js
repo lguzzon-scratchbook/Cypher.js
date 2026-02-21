@@ -293,6 +293,37 @@ _Function.f.rand = new _Function('rand', 0, 0, function() { return Math.random()
 _Function.f.timestamp = new _Function('timestamp', 0, 0, function() { return new Date(); });
 _Function.f.not = new _Function('not', 1, 1, function() { return !this.p[0].value(); });
 
+// Object and array lookup functions for property/index access
+_Function.f.object_lookup = new _Function('object_lookup', 2, 2, function() {
+  const obj = this.p[0].value();
+  const key = this.p[1].value();
+  if (obj && obj.getProperty) {
+    const result = obj.getProperty(key);
+    if (result !== null) return result;
+    // If getProperty returns null, try id() for 'id' key
+    if (key === 'id' && obj.id) {
+      return obj.id();
+    }
+    return null;
+  }
+  if (obj && obj[key] !== undefined) {
+    return obj[key];
+  }
+  // Special case for 'id' on objects with id() method
+  if (key === 'id' && obj && obj.id) {
+    return obj.id();
+  }
+  return null;
+});
+_Function.f.array_lookup = new _Function('array_lookup', 2, 2, function() {
+  const arr = this.p[0].value();
+  const index = this.p[1].value();
+  if (Array.isArray(arr) && index >= 0 && index < arr.length) {
+    return arr[index];
+  }
+  return null;
+});
+
 _Function.trie = Trie.buildTrie(_Function.f);
 _Function.latestParsed = null;
 _Function.isFunction = function(expression, position) {
@@ -2061,7 +2092,7 @@ function ExpressionElement(element) {
   this.precalculatedReadCount = 0;
   this.precalculatedValue = undefined;
   this.originalValueFunction = undefined;
-  this.parsedParameterCount = 0;
+  this._parsedParameterCount = 0;
   this.expression = undefined;
   
   element.parent = this;
@@ -2100,11 +2131,11 @@ function ExpressionElement(element) {
   this.groupByKey = element.groupByKey || this.elementValue;
   this.groupByValue = element.groupByValue || this.elementValue;
   this.hasKey = function() { return element.getKey && element.getKey(); };
-  this.parsedParameterCount = function() { return this.parsedParameterCount; };
+  this.parsedParameterCount = function() { return this._parsedParameterCount; };
   this.verifyParsedParameterCount = function(count) {
-    this.parsedParameterCount = count;
+    this._parsedParameterCount = count;
     if (element.constructor === _Function || element.constructor === AggregateFunction) {
-      element.verifyParsedParameterCount(this.parsedParameterCount);
+      element.verifyParsedParameterCount(this._parsedParameterCount);
     }
   };
   this.nonDeterministic = function() { return element.nonDeterministic; };
