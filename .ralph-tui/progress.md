@@ -32,6 +32,38 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 ```
 
+### Pattern: Database with Storage Adapter
+Database class supports optional storage adapter injection for future persistence layers.
+```javascript
+class Database {
+    constructor(engine, storageAdapter) {
+        this._storageAdapter = storageAdapter || null;
+        // ... initialization
+    }
+    // Storage adapter hooks called automatically on data changes
+    addNode(node) {
+        // ... local logic
+        if (this._storageAdapter && this._storageAdapter.addNode) {
+            this._storageAdapter.addNode(node);
+        }
+    }
+}
+```
+
+### Pattern: Constructor Dependencies for Cross-Object Communication
+Node and Relationship classes receive database reference to enable cross-object communication (label/type indexing).
+```javascript
+class Node {
+    constructor(db) {
+        this._db = db;
+    }
+    setLabel(labelName, nodeId) {
+        this._labels[labelName] = true;
+        this._db._addLabelNodeIdLookup(labelName, nodeId);
+    }
+}
+```
+
 ---
 
 ## US-001 - Cypher.js Analysis Complete
@@ -143,5 +175,42 @@ if (typeof module !== 'undefined' && module.exports) {
 - **Gotchas:**
   - Quality gates (typecheck, lint) not applicable to documentation-only tasks
   - Must ensure future implementation follows defined interfaces for persistence support
+---
+
+## 2026-02-24 - US-003
+- What was implemented: Implemented core data structures (Node, Relationship, Database) as ES6 classes with JSDoc annotations in js/CypherNG/data/
+- Files created:
+  - js/CypherNG/data/Node.js - Node class with properties, labels, path navigation
+  - js/CypherNG/data/Relationship.js - Relationship class with type, direction, properties
+  - js/CypherNG/data/Database.js - Database class with indexing, lookups, storage adapter support
+  - js/CypherNG/data/index.js - Module exports
+- **API compatibility verified:**
+  - Node: setId(), id(), getId(), setProperty(), setProperties(), bindProperty(), bindProperties(), setLabel(), hasLabel(), setLabels(), getProperties(), getRawProperties(), getLabels(), hasLabels(), hasProperties(), labels(), nextNode(), previousNode(), incomingRelationship(), outgoingRelationship(), isNode(), isRelationship(), toObject(), toString(), type()
+  - Relationship: setId(), id(), getType(), setType(), setFromNode(), setToNode(), getFromNode(), getToNode(), setLeftDirection(), setRightDirection(), leftDirection(), rightDirection(), direction(), uniDirectional(), noDirection(), isRelationship(), isNode(), isAdded(), setIsAdded(), hasVariablePathLength(), expandPath(), getProperties(), getProperty()
+  - Database: addNode(), addRelationship(), getNodeById(), getNodes(), getRelationshipById(), getRelationships(), getNodesByLabel(), getNodesByProperty(), getRelationshipsByType(), nodeCount(), relationshipCount(), clear(), getLabels(), getRelationshipTypes()
+- **Learnings:**
+  - Node in original uses factory pattern with closures; converted to ES6 class with private fields
+  - Relationship direction handling is complex - leftDirection/rightDirection methods take optional fromNodeId to calculate relative direction
+  - Database uses multiple lookup structures for efficient querying: nodeIdLookup (property), labelNodeIdLookup (labels), relationshipLookup (adjacency), relationshipIdLookup (by property), typeRelationshipIdLookup (by type)
+  - Storage adapter can be injected via Database constructor for future persistence support
+  - StringRecoder (Trie) is optional dependency for string optimization
+- **Gotchas:**
+  - Properties are stored as plain objects, need to handle property expressions separately (bindProperty method)
+  - Path navigation (nextNode, previousNode) handles both nodes and relationships in the chain
+  - Relationship ID lookup is bidirectional - relationships are stored for both directions in adjacency lookup
+  - Labels and types are stored as object keys (for fast lookup) but exposed as arrays via getLabels()/getRelationshipTypes()
+- **Patterns discovered:**
+  - ES6 class with JSDoc for dual environment (Node.js/browser)
+  - Private properties using underscore prefix convention (_property)
+  - Dual-environment export: `if (typeof module !== 'undefined' && module.exports) { module.exports = ClassName; }`
+  - Constructor takes database reference for cross-object communication (e.g., Node.setLabel calls db._addLabelNodeIdLookup)
+- **Persistence-ready architecture:**
+  - Database accepts optional storageAdapter parameter in constructor
+  - Storage adapter hooks: addNode(), addRelationship(), clear()
+  - Can be extended with getNodes(), getRelationships() for bulk load
+- **Learnings:**
+  - Following the same ES6 class pattern as existing partial implementation in query/ directory
+  - Database integrates with engine for stats tracking (nodesAdded, relationshipsAdded)
+  - Testing can import using: `const { Node, Relationship, Database } = require('./js/CypherNG/data');`
 ---
 

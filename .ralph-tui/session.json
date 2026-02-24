@@ -3,10 +3,10 @@
   "sessionId": "8b48c736-7d1c-43a4-9316-5f036c3b42b6",
   "status": "running",
   "startedAt": "2026-02-24T15:24:09.081Z",
-  "updatedAt": "2026-02-24T17:03:23.859Z",
-  "currentIteration": 1,
+  "updatedAt": "2026-02-24T18:01:30.113Z",
+  "currentIteration": 2,
   "maxIterations": 10,
-  "tasksCompleted": 1,
+  "tasksCompleted": 2,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -23,8 +23,8 @@
       {
         "id": "US-002",
         "title": "Design modular architecture for CypherNG",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-003",
@@ -80,6 +80,16 @@
       "durationMs": 322054,
       "startedAt": "2026-02-24T15:24:31.622Z",
       "endedAt": "2026-02-24T15:29:53.676Z"
+    },
+    {
+      "iteration": 2,
+      "status": "completed",
+      "taskId": "US-002",
+      "taskTitle": "Design modular architecture for CypherNG",
+      "taskCompleted": true,
+      "durationMs": 5608640,
+      "startedAt": "2026-02-24T15:29:55.054Z",
+      "endedAt": "2026-02-24T17:03:23.694Z"
     }
   ],
   "skippedTaskIds": [],
