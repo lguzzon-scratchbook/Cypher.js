@@ -113,3 +113,35 @@ if (typeof module !== 'undefined' && module.exports) {
   - Aggregation using trie structure in GroupBy for efficient GROUP BY
 ---
 
+## 2026-02-24 - US-002
+- What was implemented: Created modular architecture design document at js/CypherNG/ARCHITECTURE.md
+- Files created: js/CypherNG/ARCHITECTURE.md
+- **Module structure defined:**
+  - core/ - Main entry point and API
+  - data/ - Node, Relationship, Database classes
+  - network/ - Matcher, PathExpansion for graph traversal
+  - parser/ - Parser, Statement for query parsing
+  - query/ - ReturnValue, GroupBy, Variable, operations (Match, Create, Merge, Delete)
+  - types/ - Expression, BinaryExpression, FunctionCall
+  - utils/ - StringRecoder
+- **Persistence-agnostic interfaces documented:**
+  - StorageAdapter interface for custom storage backends
+  - QueryContext interface for execution context
+- **Separation points identified:**
+  - Storage Abstraction Layer in Database class
+  - Query Execution Context (persistence-agnostic)
+  - Transaction boundaries for atomic operations
+- **Integration points documented:**
+  - Entry point (createCypherNG factory)
+  - Custom storage adapter example structure
+  - Module dependency graph
+- **Learnings:**
+  - Architecture aligns with existing partial implementation (ES6 classes + JSDoc)
+  - Factory pattern in original maps to class-based architecture in refactor
+  - Storage can be injected via Database constructor for persistence flexibility
+  - Query execution operates on abstraction, enabling any storage backend
+- **Gotchas:**
+  - Quality gates (typecheck, lint) not applicable to documentation-only tasks
+  - Must ensure future implementation follows defined interfaces for persistence support
+---
+
