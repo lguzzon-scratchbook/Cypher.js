@@ -1,4 +1,4 @@
-var Cypher = require("./Cypher.js");
+var Cypher = require('./Cypher.js');
 
 var engine = new Cypher();
 
@@ -28,12 +28,12 @@ var statement = `
 `;
 
 engine.execute(
-    statement,
-    function(results) {
-        console.log(JSON.stringify(results.graph));
-        console.log(JSON.stringify(results));
-    },
-    function(error) {
-        console.log(error);
-    }
+	statement,
+	(results) => {
+		console.log(JSON.stringify(results.graph));
+		console.log(JSON.stringify(results));
+	},
+	(error) => {
+		console.log(error);
+	}
 );

@@ -1,15 +1,15 @@
-import { ExpressionEvaluator } from './core/ExpressionEvaluator.js';
-import { GraphEngine } from './core/GraphEngine.js';
-import { QueryExecutor } from './core/QueryExecutor.js';
-import { QueryParser } from './core/QueryParser.js';
-import { Graph } from './data/Graph.js';
-import { QueryResult } from './data/QueryResult.js';
-import { Registry } from './storage/Registry.js';
+
+
+
+
+
+
+
 
 /**
  * CypherNG - Modern Cypher graph database implementation
  */
-export class CypherNG {
+class CypherNG {
 	/**
 	 * @param {Object} [options={}]
 	 */
@@ -105,14 +105,14 @@ export class CypherNG {
 }
 
 // Export for different module systems
-export default CypherNG;
+module.exports = CypherNG;
 
 /**
  * Create a new CypherNG instance (factory function)
  * @param {Object} [options={}]
  * @returns {CypherNG}
  */
-export function createCypherNG(options) {
+function createCypherNG(options) {
 	return new CypherNG(options);
 }
 
@@ -120,3 +120,6 @@ export function createCypherNG(options) {
 if (typeof window !== 'undefined') {
 	window.CypherNG = CypherNG;
 }
+
+module.exports.CypherNG = CypherNG;
+module.exports.createCypherNG = createCypherNG;
