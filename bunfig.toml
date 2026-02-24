@@ -1,0 +1,5 @@
+[test]
+coverage = true
+
+[coverage]
+threshold = 0.8

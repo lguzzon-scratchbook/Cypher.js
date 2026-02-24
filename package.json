@@ -1,0 +1,45 @@
+{
+  "name": "cypher.js",
+  "version": "1.0.0",
+  "description": "CypherNG - Refactored Cypher graph database implementation",
+  "type": "module",
+  "main": "./dist/cjs/CypherNG.js",
+  "module": "./dist/esm/CypherNG.js",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/CypherNG.js",
+      "require": "./dist/cjs/CypherNG.js",
+      "types": "./dist/esm/CypherNG.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/esm/CypherNG.d.ts",
+  "files": [
+    "dist",
+    "js"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "test:coverage": "bun test --coverage",
+    "lint": "biome check --write js/",
+    "build": "bun run build.js",
+    "prepublish": "bun run build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {},
+  "keywords": [
+    "cypher",
+    "graph",
+    "database",
+    "neo4j"
+  ],
+  "author": "",
+  "license": "MIT",
+  "private": true
+}
