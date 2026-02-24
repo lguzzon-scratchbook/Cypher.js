@@ -112,3 +112,10 @@
 2026-02-24T11:00:08.653757Z  INFO ralph_core::event_loop: Wrapping up: completed. 1 iterations in 6m 59s. reason=completed iterations=1 duration=6m 59s
 2026-02-24T11:00:08.654018Z DEBUG ralph_core::event_logger: Event logged topic=loop.terminate iteration=1
 2026-02-24T11:00:08.674820Z  INFO ralph_core::landing: Beginning landing sequence loop_id=primary
+2026-02-24T11:00:08.881236Z  INFO ralph_core::landing: Auto-committed changes during landing loop_id=primary commit=Some("a99df78bcddbc085505cfe2bb827e9519b255c0f") files=18
+2026-02-24T11:00:09.998077Z  INFO ralph_core::landing: Generated handoff file loop_id=primary path=/home/suser/DEVs/GITs/GITHUBs/Cypher.js/.ralph/agent/handoff.md completed=1 open=0
+2026-02-24T11:00:10.033417Z  INFO ralph_core::loop_completion: Landing completed with auto-commit commit=Some("a99df78bcddbc085505cfe2bb827e9519b255c0f") handoff=/home/suser/DEVs/GITs/GITHUBs/Cypher.js/.ralph/agent/handoff.md
+2026-02-24T11:00:10.033493Z DEBUG ralph_core::loop_completion: Primary loop completed with landing
+2026-02-24T11:00:10.033509Z  INFO ralph::loop_runner: Primary loop landed successfully committed=true handoff=/home/suser/DEVs/GITs/GITHUBs/Cypher.js/.ralph/agent/handoff.md open_tasks=0
+2026-02-24T11:00:10.033612Z DEBUG ralph::loop_runner: No pending merges in queue
+2026-02-24T11:03:34.367631Z DEBUG ralph_core::loop_lock: Releasing loop lock at /home/suser/DEVs/GITs/GITHUBs/Cypher.js/.ralph/loop.lock
