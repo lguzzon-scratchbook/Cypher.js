@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { CypherNG } from '../../src/CypherNG.js';
 import { GraphEngine } from '../../src/core/GraphEngine.js';
+import { ExpressionEvaluator } from '../../src/core/ExpressionEvaluator.js';
+import { QueryExecutor } from '../../src/core/QueryExecutor.js';
 import { QueryParser } from '../../src/core/QueryParser.js';
 import { Graph } from '../../src/data/Graph.js';
 import { Node } from '../../src/data/Node.js';
 import { QueryResult } from '../../src/data/QueryResult.js';
 import { Relationship } from '../../src/data/Relationship.js';
 import { StorageAdapter } from '../../src/storage/Adapter.js';
+import { Registry } from '../../src/storage/Registry.js';
+import { StringRecoder } from '../../src/utils/StringRecoder.js';
 
 describe('Node', () => {
 	let node;
@@ -385,6 +389,372 @@ describe('CypherNG', () => {
 
 	it('should support async execution', async () => {
 		const result = await cypher.executeAsync('RETURN "hello" as greeting');
+		expect(result).toBeInstanceOf(QueryResult);
+	});
+});
+
+describe('StringRecoder', () => {
+	let recoder;
+
+	beforeEach(() => {
+		recoder = new StringRecoder();
+	});
+
+	it('should recode a string to an integer', () => {
+		const code = recoder.recode('hello');
+		expect(typeof code).toBe('number');
+	});
+
+	it('should return same code for same string', () => {
+		const code1 = recoder.recode('hello');
+		const code2 = recoder.recode('hello');
+		expect(code1).toBe(code2);
+	});
+
+	it('should return different codes for different strings', () => {
+		const code1 = recoder.recode('hello');
+		const code2 = recoder.recode('world');
+		expect(code1).not.toBe(code2);
+	});
+
+	it('should handle null values', () => {
+		expect(recoder.recode(null)).toBe(null);
+	});
+
+	it('should handle undefined values', () => {
+		expect(recoder.recode(undefined)).toBe(undefined);
+	});
+
+	it('should handle empty string', () => {
+		expect(recoder.recode('')).toBe('');
+	});
+
+	it('should handle numbers', () => {
+		const code = recoder.recode(123);
+		expect(typeof code).toBe('number');
+	});
+
+	it('should reset the recoder', () => {
+		recoder.recode('test');
+		recoder.reset();
+		const code = recoder.recode('test');
+		expect(code).toBe(1);
+	});
+});
+
+describe('ExpressionEvaluator', () => {
+	let evaluator;
+
+	beforeEach(() => {
+		evaluator = new ExpressionEvaluator({ x: 10, y: 5 });
+	});
+
+	it('should evaluate null/undefined', () => {
+		expect(evaluator.evaluate(null)).toBe(null);
+		expect(evaluator.evaluate(undefined)).toBe(null);
+	});
+
+	it('should evaluate object without type', () => {
+		const result = evaluator.evaluate({ foo: 'bar' });
+		expect(result.foo).toBe('bar');
+	});
+
+	it('should evaluate Identifier', () => {
+		expect(evaluator.evaluate({ type: 'Identifier', name: 'x' })).toBe(10);
+		expect(evaluator.evaluate({ type: 'Identifier', name: 'unknown' })).toBe(null);
+	});
+
+	it('should evaluate Literal', () => {
+		expect(evaluator.evaluate({ type: 'Literal', value: 42 })).toBe(42);
+	});
+
+	it('should evaluate PropertyAccess', () => {
+		const obj = { type: 'PropertyAccess', object: { type: 'Identifier', name: 'x' }, property: 'toString' };
+		const result = evaluator.evaluate(obj);
+		expect(result).toBeDefined();
+	});
+
+	it('should evaluate FunctionCall', () => {
+		const expr = { type: 'FunctionCall', name: 'toUpper', arguments: [{ type: 'Literal', value: 'hello' }] };
+		expect(evaluator.evaluate(expr)).toBe('HELLO');
+	});
+
+	it('should evaluate unknown function', () => {
+		const expr = { type: 'FunctionCall', name: 'unknown', arguments: [] };
+		expect(evaluator.evaluate(expr)).toBe(null);
+	});
+
+	it('should evaluate BinaryExpression - math operators', () => {
+		const expr = { type: 'BinaryExpression', operator: '+', left: { type: 'Literal', value: 2 }, right: { type: 'Literal', value: 3 } };
+		expect(evaluator.evaluate(expr)).toBe(5);
+
+		expr.operator = '-';
+		expect(evaluator.evaluate(expr)).toBe(-1);
+
+		expr.operator = '*';
+		expect(evaluator.evaluate(expr)).toBe(6);
+
+		expr.operator = '/';
+		expect(evaluator.evaluate(expr)).toBe(2 / 3);
+
+		expr.operator = '%';
+		expect(evaluator.evaluate(expr)).toBe(2);
+	});
+
+	it('should evaluate BinaryExpression - comparison operators', () => {
+		const expr = { type: 'BinaryExpression', operator: '=', left: { type: 'Literal', value: 5 }, right: { type: 'Literal', value: 5 } };
+		expect(evaluator.evaluate(expr)).toBe(true);
+
+		expr.operator = '==';
+		expect(evaluator.evaluate(expr)).toBe(true);
+
+		expr.operator = '!=';
+		expect(evaluator.evaluate(expr)).toBe(false);
+
+		expr.operator = '<';
+		expect(evaluator.evaluate(expr)).toBe(false);
+
+		expr.operator = '>';
+		expect(evaluator.evaluate(expr)).toBe(false);
+
+		expr.operator = '<=';
+		expect(evaluator.evaluate(expr)).toBe(true);
+
+		expr.operator = '>=';
+		expect(evaluator.evaluate(expr)).toBe(true);
+	});
+
+	it('should evaluate BinaryExpression - logical operators', () => {
+		const expr = { type: 'BinaryExpression', operator: 'AND', left: { type: 'Literal', value: true }, right: { type: 'Literal', value: true } };
+		expect(evaluator.evaluate(expr)).toBe(true);
+
+		expr.operator = 'OR';
+		expect(evaluator.evaluate(expr)).toBe(true);
+
+		expr.left = { type: 'Literal', value: false };
+		expect(evaluator.evaluate(expr)).toBe(true);
+	});
+
+	it('should evaluate BinaryExpression - string operators', () => {
+		const expr = { type: 'BinaryExpression', operator: 'CONTAINS', left: { type: 'Literal', value: 'hello world' }, right: { type: 'Literal', value: 'world' } };
+		expect(evaluator.evaluate(expr)).toBe(true);
+
+		expr.operator = 'STARTS WITH';
+		expect(evaluator.evaluate(expr)).toBe(false);
+
+		expr.operator = 'ENDS WITH';
+		expect(evaluator.evaluate(expr)).toBe(true);
+	});
+
+	it('should evaluate BinaryExpression - IN operator', () => {
+		const expr = { type: 'BinaryExpression', operator: 'IN', left: { type: 'Literal', value: 2 }, right: { type: 'Literal', value: [1, 2, 3] } };
+		expect(evaluator.evaluate(expr)).toBe(true);
+	});
+
+	it('should evaluate unknown binary operator', () => {
+		const expr = { type: 'BinaryExpression', operator: 'UNKNOWN', left: {}, right: {} };
+		expect(evaluator.evaluate(expr)).toBe(null);
+	});
+
+	it('should evaluate UnaryExpression - NOT', () => {
+		const expr = { type: 'UnaryExpression', operator: 'NOT', operand: { type: 'Literal', value: false } };
+		expect(evaluator.evaluate(expr)).toBe(true);
+	});
+
+	it('should evaluate UnaryExpression - negation', () => {
+		const expr = { type: 'UnaryExpression', operator: '-', operand: { type: 'Literal', value: 5 } };
+		expect(evaluator.evaluate(expr)).toBe(-5);
+	});
+
+	it('should evaluate unknown unary operator', () => {
+		const expr = { type: 'UnaryExpression', operator: 'UNKNOWN', operand: {} };
+		expect(evaluator.evaluate(expr)).toBe(null);
+	});
+
+	it('should evaluate string literals', () => {
+		expect(evaluator.evaluate("'hello'")).toBe('hello');
+		expect(evaluator.evaluate('"world"')).toBe('world');
+	});
+
+	it('should evaluate numeric strings', () => {
+		expect(evaluator.evaluate('42')).toBe(42);
+		expect(evaluator.evaluate('3.14')).toBe(3.14);
+	});
+
+	it('should evaluate boolean literals', () => {
+		expect(evaluator.evaluate('true')).toBe(true);
+		expect(evaluator.evaluate('false')).toBe(false);
+		expect(evaluator.evaluate('null')).toBe(null);
+	});
+
+	it('should evaluate string functions', () => {
+		let expr = { type: 'FunctionCall', name: 'toLower', arguments: [{ type: 'Literal', value: 'HELLO' }] };
+		expect(evaluator.evaluate(expr)).toBe('hello');
+
+		expr = { type: 'FunctionCall', name: 'trim', arguments: [{ type: 'Literal', value: '  HELLO  ' }] };
+		expect(evaluator.evaluate(expr)).toBe('HELLO');
+
+		expr = { type: 'FunctionCall', name: 'left', arguments: [{ type: 'Literal', value: 'HELLO' }, { type: 'Literal', value: 2 }] };
+		expect(evaluator.evaluate(expr)).toBe('HE');
+
+		expr = { type: 'FunctionCall', name: 'right', arguments: [{ type: 'Literal', value: 'HELLO' }, { type: 'Literal', value: 2 }] };
+		expect(evaluator.evaluate(expr)).toBe('LO');
+
+		expr = { type: 'FunctionCall', name: 'replace', arguments: [{ type: 'Literal', value: 'HELLO' }, { type: 'Literal', value: 'EL' }, { type: 'Literal', value: 'XX' }] };
+		expect(evaluator.evaluate(expr)).toBe('HXXLO');
+	});
+
+	it('should evaluate math functions', () => {
+		let expr = { type: 'FunctionCall', name: 'abs', arguments: [{ type: 'Literal', value: -5 }] };
+		expect(evaluator.evaluate(expr)).toBe(5);
+
+		expr = { type: 'FunctionCall', name: 'ceil', arguments: [{ type: 'Literal', value: 4.2 }] };
+		expect(evaluator.evaluate(expr)).toBe(5);
+
+		expr = { type: 'FunctionCall', name: 'floor', arguments: [{ type: 'Literal', value: 4.7 }] };
+		expect(evaluator.evaluate(expr)).toBe(4);
+
+		expr = { type: 'FunctionCall', name: 'round', arguments: [{ type: 'Literal', value: 4.5 }] };
+		expect(evaluator.evaluate(expr)).toBe(5);
+
+		expr = { type: 'FunctionCall', name: 'sqrt', arguments: [{ type: 'Literal', value: 5 }] };
+		expect(evaluator.evaluate(expr)).toBeCloseTo(2.236);
+	});
+
+	it('should evaluate type functions', () => {
+		const expr = { type: 'FunctionCall', name: 'toString', arguments: [{ type: 'Literal', value: 42 }] };
+		expect(evaluator.evaluate(expr)).toBe('42');
+
+		expr.name = 'type';
+		expect(evaluator.evaluate(expr)).toBe('number');
+	});
+
+	it('should evaluate collection functions', () => {
+		let expr = { type: 'FunctionCall', name: 'size', arguments: [{ type: 'Literal', value: [1, 2, 3] }] };
+		expect(evaluator.evaluate(expr)).toBe(3);
+
+		expr = { type: 'FunctionCall', name: 'head', arguments: [{ type: 'Literal', value: [1, 2, 3] }] };
+		expect(evaluator.evaluate(expr)).toBe(1);
+
+		expr = { type: 'FunctionCall', name: 'last', arguments: [{ type: 'Literal', value: [1, 2, 3] }] };
+		expect(evaluator.evaluate(expr)).toBe(3);
+
+		expr = { type: 'FunctionCall', name: 'collect', arguments: [{ type: 'Literal', value: 5 }] };
+		expect(evaluator.evaluate(expr)).toEqual([5]);
+
+		expr = { type: 'FunctionCall', name: 'reverse', arguments: [{ type: 'Literal', value: [1, 2, 3] }] };
+		expect(evaluator.evaluate(expr)).toEqual([3, 2, 1]);
+	});
+
+	it('should evaluate expression with custom context', () => {
+		const result = evaluator.evaluate({ type: 'Identifier', name: 'x' }, { x: 100 });
+		expect(result).toBe(100);
+	});
+});
+
+describe('Registry', () => {
+	let registry;
+
+	beforeEach(() => {
+		registry = new Registry();
+	});
+
+	it('should create a registry', () => {
+		expect(registry).toBeDefined();
+	});
+
+	it('should register and get a storage adapter', () => {
+		class MockAdapter extends StorageAdapter {
+			async save() {}
+			async load() { return null; }
+			async delete() {}
+			async exists() { return false; }
+			async listKeys() { return []; }
+			async clear() {}
+		}
+		const adapter = new MockAdapter();
+		registry.register('test', adapter);
+		expect(registry.get('test')).toBe(adapter);
+	});
+
+	it('should return undefined for unregistered key', () => {
+		expect(registry.get('unknown')).toBeUndefined();
+	});
+
+	it('should check if adapter exists', () => {
+		class MockAdapter extends StorageAdapter {
+			async save() {}
+			async load() { return null; }
+			async delete() {}
+			async exists() { return false; }
+			async listKeys() { return []; }
+			async clear() {}
+		}
+		const adapter = new MockAdapter();
+		registry.register('test', adapter);
+		expect(registry.has('test')).toBe(true);
+		expect(registry.has('unknown')).toBe(false);
+	});
+
+	it('should unregister an adapter', () => {
+		class MockAdapter extends StorageAdapter {
+			async save() {}
+			async load() { return null; }
+			async delete() {}
+			async exists() { return false; }
+			async listKeys() { return []; }
+			async clear() {}
+		}
+		const adapter = new MockAdapter();
+		registry.register('test', adapter);
+		registry.unregister('test');
+		expect(registry.get('test')).toBeUndefined();
+	});
+
+	it('should list registered adapters', () => {
+		class MockAdapter extends StorageAdapter {
+			async save() {}
+			async load() { return null; }
+			async delete() {}
+			async exists() { return false; }
+			async listKeys() { return []; }
+			async clear() {}
+		}
+		registry.register('test1', new MockAdapter());
+		registry.register('test2', new MockAdapter());
+		const keys = registry.list();
+		expect(keys).toContain('test1');
+		expect(keys).toContain('test2');
+	});
+});
+
+describe('QueryExecutor', () => {
+	let executor;
+	let engine;
+
+	beforeEach(() => {
+		engine = new GraphEngine();
+		executor = new QueryExecutor(engine);
+	});
+
+	it('should execute MATCH query', () => {
+		const result = executor.executeSync('MATCH (n) RETURN n');
+		expect(result).toBeInstanceOf(QueryResult);
+	});
+
+	it('should execute CREATE query', () => {
+		const result = executor.executeSync('CREATE (n) RETURN n');
+		expect(result.stats.nodesCreated).toBe(1);
+	});
+
+	it('should execute with callback', () => {
+		executor.execute('RETURN 1', {}, (result) => {
+			expect(result).toBeInstanceOf(QueryResult);
+		});
+	});
+
+	it('should execute async', async () => {
+		const result = await executor.executeAsync('RETURN 1');
 		expect(result).toBeInstanceOf(QueryResult);
 	});
 });

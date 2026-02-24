@@ -19,8 +19,8 @@
     "js"
   ],
   "scripts": {
-    "test": "bun test",
-    "test:coverage": "bun test --coverage",
+    "test": "bun test ./tests/shared/*.test.js",
+    "test:coverage": "bun test ./tests/shared/*.test.js --coverage",
     "lint": "biome check --write js/",
     "build": "bun run build.js",
     "prepublish": "bun run build"
