@@ -3,17 +3,17 @@
   "version": "1.0.0",
   "description": "CypherNG - Refactored Cypher graph database implementation",
   "type": "module",
-  "main": "./dist/cjs/CypherNG.js",
-  "module": "./dist/esm/CypherNG.js",
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
   "exports": {
     ".": {
-      "import": "./dist/esm/CypherNG.js",
-      "require": "./dist/cjs/CypherNG.js",
-      "types": "./dist/esm/CypherNG.d.ts"
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.cjs",
+      "types": "./dist/esm/index.d.ts"
     },
     "./package.json": "./package.json"
   },
-  "types": "./dist/esm/CypherNG.d.ts",
+  "types": "./dist/esm/index.d.ts",
   "files": [
     "dist",
     "js"

@@ -48,3 +48,11 @@ Completed: 2026-02-24 14:XX
 - The legacy test had "List not defined" error causing test runner to fail
 - bun test now passes: 85 tests, 0 fail, 83.17% coverage
 - All lint checks pass
+
+## 2026-02-24 15:XX: Dual Build Support
+- Fixed build.js to generate both ESM and CJS outputs
+- ESM: dist/esm/index.js (works in Node.js)
+- CJS: dist/cjs/index.cjs (works via require())
+- package.json updated with proper exports field
+- Tests pass after build fix
+- BiomeJS lint passes
