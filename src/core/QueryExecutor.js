@@ -1,5 +1,4 @@
 import { QueryResult } from '../data/QueryResult.js';
-import { ExpressionEvaluator } from './ExpressionEvaluator.js';
 import { QueryParser } from './QueryParser.js';
 
 /**
@@ -151,7 +150,7 @@ export class QueryExecutor {
 	 * @param {string[]} body
 	 * @returns {Object}
 	 */
-	handleMatch(context, body) {
+	handleMatch(context, _body) {
 		const nodes = this.engine.getNodes();
 		const results = nodes.map((node) => ({ n: node }));
 
@@ -168,7 +167,7 @@ export class QueryExecutor {
 	 * @param {string[]} body
 	 * @returns {Object}
 	 */
-	handleCreate(context, body) {
+	handleCreate(context, _body) {
 		const node = this.engine.createNode([], {});
 		const results = [{ n: node }];
 
@@ -177,8 +176,8 @@ export class QueryExecutor {
 			results,
 			columns: ['n'],
 			stats: {
-				...context.stats,
-				nodesCreated: (context.stats.nodesCreated || 0) + 1,
+				...(context.stats || {}),
+				nodesCreated: (context.stats?.nodesCreated || 0) + 1,
 			},
 		};
 	}
@@ -199,7 +198,7 @@ export class QueryExecutor {
 	 * @param {string[]} body
 	 * @returns {Object}
 	 */
-	handleReturn(context, body) {
+	handleReturn(context, _body) {
 		return {
 			...context,
 			return: true,
@@ -212,7 +211,7 @@ export class QueryExecutor {
 	 * @param {string[]} body
 	 * @returns {Object}
 	 */
-	handleWhere(context, body) {
+	handleWhere(context, _body) {
 		return context;
 	}
 
@@ -222,7 +221,7 @@ export class QueryExecutor {
 	 * @param {string[]} body
 	 * @returns {Object}
 	 */
-	handleDelete(context, body) {
+	handleDelete(context, _body) {
 		return context;
 	}
 
@@ -232,7 +231,7 @@ export class QueryExecutor {
 	 * @param {string[]} body
 	 * @returns {Object}
 	 */
-	handleSet(context, body) {
+	handleSet(context, _body) {
 		return context;
 	}
 
@@ -242,7 +241,7 @@ export class QueryExecutor {
 	 * @param {string[]} body
 	 * @returns {Object}
 	 */
-	handleRemove(context, body) {
+	handleRemove(context, _body) {
 		return context;
 	}
 
@@ -252,7 +251,7 @@ export class QueryExecutor {
 	 * @param {string[]} body
 	 * @returns {Object}
 	 */
-	handleWith(context, body) {
+	handleWith(context, _body) {
 		return context;
 	}
 
@@ -262,7 +261,7 @@ export class QueryExecutor {
 	 * @param {string[]} body
 	 * @returns {Object}
 	 */
-	handleUnwind(context, body) {
+	handleUnwind(context, _body) {
 		return context;
 	}
 
@@ -272,7 +271,7 @@ export class QueryExecutor {
 	 * @param {string[]} body
 	 * @returns {Object}
 	 */
-	handleOrderBy(context, body) {
+	handleOrderBy(context, _body) {
 		return context;
 	}
 
@@ -282,7 +281,7 @@ export class QueryExecutor {
 	 * @param {string[]} body
 	 * @returns {Object}
 	 */
-	handleSkip(context, body) {
+	handleSkip(context, _body) {
 		return context;
 	}
 
@@ -292,7 +291,7 @@ export class QueryExecutor {
 	 * @param {string[]} body
 	 * @returns {Object}
 	 */
-	handleLimit(context, body) {
+	handleLimit(context, _body) {
 		return context;
 	}
 }

@@ -8,7 +8,7 @@ export class StorageAdapter {
 	 * @param {*} data
 	 * @returns {Promise<void>}
 	 */
-	async save(key, data) {
+	async save(_key, _data) {
 		throw new Error('Not implemented');
 	}
 
@@ -17,7 +17,7 @@ export class StorageAdapter {
 	 * @param {string} key
 	 * @returns {Promise<*>}
 	 */
-	async load(key) {
+	async load(_key) {
 		throw new Error('Not implemented');
 	}
 
@@ -26,7 +26,7 @@ export class StorageAdapter {
 	 * @param {string} key
 	 * @returns {Promise<void>}
 	 */
-	async delete(key) {
+	async delete(_key) {
 		throw new Error('Not implemented');
 	}
 
@@ -35,7 +35,7 @@ export class StorageAdapter {
 	 * @param {string} key
 	 * @returns {Promise<boolean>}
 	 */
-	async exists(key) {
+	async exists(_key) {
 		throw new Error('Not implemented');
 	}
 
