@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { CypherNG } from '../../src/CypherNG.js';
-import { GraphEngine } from '../../src/core/GraphEngine.js';
 import { ExpressionEvaluator } from '../../src/core/ExpressionEvaluator.js';
+import { GraphEngine } from '../../src/core/GraphEngine.js';
 import { QueryExecutor } from '../../src/core/QueryExecutor.js';
 import { QueryParser } from '../../src/core/QueryParser.js';
 import { Graph } from '../../src/data/Graph.js';
@@ -461,7 +461,9 @@ describe('ExpressionEvaluator', () => {
 
 	it('should evaluate Identifier', () => {
 		expect(evaluator.evaluate({ type: 'Identifier', name: 'x' })).toBe(10);
-		expect(evaluator.evaluate({ type: 'Identifier', name: 'unknown' })).toBe(null);
+		expect(evaluator.evaluate({ type: 'Identifier', name: 'unknown' })).toBe(
+			null
+		);
 	});
 
 	it('should evaluate Literal', () => {
@@ -469,13 +471,21 @@ describe('ExpressionEvaluator', () => {
 	});
 
 	it('should evaluate PropertyAccess', () => {
-		const obj = { type: 'PropertyAccess', object: { type: 'Identifier', name: 'x' }, property: 'toString' };
+		const obj = {
+			type: 'PropertyAccess',
+			object: { type: 'Identifier', name: 'x' },
+			property: 'toString',
+		};
 		const result = evaluator.evaluate(obj);
 		expect(result).toBeDefined();
 	});
 
 	it('should evaluate FunctionCall', () => {
-		const expr = { type: 'FunctionCall', name: 'toUpper', arguments: [{ type: 'Literal', value: 'hello' }] };
+		const expr = {
+			type: 'FunctionCall',
+			name: 'toUpper',
+			arguments: [{ type: 'Literal', value: 'hello' }],
+		};
 		expect(evaluator.evaluate(expr)).toBe('HELLO');
 	});
 
@@ -485,7 +495,12 @@ describe('ExpressionEvaluator', () => {
 	});
 
 	it('should evaluate BinaryExpression - math operators', () => {
-		const expr = { type: 'BinaryExpression', operator: '+', left: { type: 'Literal', value: 2 }, right: { type: 'Literal', value: 3 } };
+		const expr = {
+			type: 'BinaryExpression',
+			operator: '+',
+			left: { type: 'Literal', value: 2 },
+			right: { type: 'Literal', value: 3 },
+		};
 		expect(evaluator.evaluate(expr)).toBe(5);
 
 		expr.operator = '-';
@@ -502,7 +517,12 @@ describe('ExpressionEvaluator', () => {
 	});
 
 	it('should evaluate BinaryExpression - comparison operators', () => {
-		const expr = { type: 'BinaryExpression', operator: '=', left: { type: 'Literal', value: 5 }, right: { type: 'Literal', value: 5 } };
+		const expr = {
+			type: 'BinaryExpression',
+			operator: '=',
+			left: { type: 'Literal', value: 5 },
+			right: { type: 'Literal', value: 5 },
+		};
 		expect(evaluator.evaluate(expr)).toBe(true);
 
 		expr.operator = '==';
@@ -525,7 +545,12 @@ describe('ExpressionEvaluator', () => {
 	});
 
 	it('should evaluate BinaryExpression - logical operators', () => {
-		const expr = { type: 'BinaryExpression', operator: 'AND', left: { type: 'Literal', value: true }, right: { type: 'Literal', value: true } };
+		const expr = {
+			type: 'BinaryExpression',
+			operator: 'AND',
+			left: { type: 'Literal', value: true },
+			right: { type: 'Literal', value: true },
+		};
 		expect(evaluator.evaluate(expr)).toBe(true);
 
 		expr.operator = 'OR';
@@ -536,7 +561,12 @@ describe('ExpressionEvaluator', () => {
 	});
 
 	it('should evaluate BinaryExpression - string operators', () => {
-		const expr = { type: 'BinaryExpression', operator: 'CONTAINS', left: { type: 'Literal', value: 'hello world' }, right: { type: 'Literal', value: 'world' } };
+		const expr = {
+			type: 'BinaryExpression',
+			operator: 'CONTAINS',
+			left: { type: 'Literal', value: 'hello world' },
+			right: { type: 'Literal', value: 'world' },
+		};
 		expect(evaluator.evaluate(expr)).toBe(true);
 
 		expr.operator = 'STARTS WITH';
@@ -547,22 +577,40 @@ describe('ExpressionEvaluator', () => {
 	});
 
 	it('should evaluate BinaryExpression - IN operator', () => {
-		const expr = { type: 'BinaryExpression', operator: 'IN', left: { type: 'Literal', value: 2 }, right: { type: 'Literal', value: [1, 2, 3] } };
+		const expr = {
+			type: 'BinaryExpression',
+			operator: 'IN',
+			left: { type: 'Literal', value: 2 },
+			right: { type: 'Literal', value: [1, 2, 3] },
+		};
 		expect(evaluator.evaluate(expr)).toBe(true);
 	});
 
 	it('should evaluate unknown binary operator', () => {
-		const expr = { type: 'BinaryExpression', operator: 'UNKNOWN', left: {}, right: {} };
+		const expr = {
+			type: 'BinaryExpression',
+			operator: 'UNKNOWN',
+			left: {},
+			right: {},
+		};
 		expect(evaluator.evaluate(expr)).toBe(null);
 	});
 
 	it('should evaluate UnaryExpression - NOT', () => {
-		const expr = { type: 'UnaryExpression', operator: 'NOT', operand: { type: 'Literal', value: false } };
+		const expr = {
+			type: 'UnaryExpression',
+			operator: 'NOT',
+			operand: { type: 'Literal', value: false },
+		};
 		expect(evaluator.evaluate(expr)).toBe(true);
 	});
 
 	it('should evaluate UnaryExpression - negation', () => {
-		const expr = { type: 'UnaryExpression', operator: '-', operand: { type: 'Literal', value: 5 } };
+		const expr = {
+			type: 'UnaryExpression',
+			operator: '-',
+			operand: { type: 'Literal', value: 5 },
+		};
 		expect(evaluator.evaluate(expr)).toBe(-5);
 	});
 
@@ -588,41 +636,95 @@ describe('ExpressionEvaluator', () => {
 	});
 
 	it('should evaluate string functions', () => {
-		let expr = { type: 'FunctionCall', name: 'toLower', arguments: [{ type: 'Literal', value: 'HELLO' }] };
+		let expr = {
+			type: 'FunctionCall',
+			name: 'toLower',
+			arguments: [{ type: 'Literal', value: 'HELLO' }],
+		};
 		expect(evaluator.evaluate(expr)).toBe('hello');
 
-		expr = { type: 'FunctionCall', name: 'trim', arguments: [{ type: 'Literal', value: '  HELLO  ' }] };
+		expr = {
+			type: 'FunctionCall',
+			name: 'trim',
+			arguments: [{ type: 'Literal', value: '  HELLO  ' }],
+		};
 		expect(evaluator.evaluate(expr)).toBe('HELLO');
 
-		expr = { type: 'FunctionCall', name: 'left', arguments: [{ type: 'Literal', value: 'HELLO' }, { type: 'Literal', value: 2 }] };
+		expr = {
+			type: 'FunctionCall',
+			name: 'left',
+			arguments: [
+				{ type: 'Literal', value: 'HELLO' },
+				{ type: 'Literal', value: 2 },
+			],
+		};
 		expect(evaluator.evaluate(expr)).toBe('HE');
 
-		expr = { type: 'FunctionCall', name: 'right', arguments: [{ type: 'Literal', value: 'HELLO' }, { type: 'Literal', value: 2 }] };
+		expr = {
+			type: 'FunctionCall',
+			name: 'right',
+			arguments: [
+				{ type: 'Literal', value: 'HELLO' },
+				{ type: 'Literal', value: 2 },
+			],
+		};
 		expect(evaluator.evaluate(expr)).toBe('LO');
 
-		expr = { type: 'FunctionCall', name: 'replace', arguments: [{ type: 'Literal', value: 'HELLO' }, { type: 'Literal', value: 'EL' }, { type: 'Literal', value: 'XX' }] };
+		expr = {
+			type: 'FunctionCall',
+			name: 'replace',
+			arguments: [
+				{ type: 'Literal', value: 'HELLO' },
+				{ type: 'Literal', value: 'EL' },
+				{ type: 'Literal', value: 'XX' },
+			],
+		};
 		expect(evaluator.evaluate(expr)).toBe('HXXLO');
 	});
 
 	it('should evaluate math functions', () => {
-		let expr = { type: 'FunctionCall', name: 'abs', arguments: [{ type: 'Literal', value: -5 }] };
+		let expr = {
+			type: 'FunctionCall',
+			name: 'abs',
+			arguments: [{ type: 'Literal', value: -5 }],
+		};
 		expect(evaluator.evaluate(expr)).toBe(5);
 
-		expr = { type: 'FunctionCall', name: 'ceil', arguments: [{ type: 'Literal', value: 4.2 }] };
+		expr = {
+			type: 'FunctionCall',
+			name: 'ceil',
+			arguments: [{ type: 'Literal', value: 4.2 }],
+		};
 		expect(evaluator.evaluate(expr)).toBe(5);
 
-		expr = { type: 'FunctionCall', name: 'floor', arguments: [{ type: 'Literal', value: 4.7 }] };
+		expr = {
+			type: 'FunctionCall',
+			name: 'floor',
+			arguments: [{ type: 'Literal', value: 4.7 }],
+		};
 		expect(evaluator.evaluate(expr)).toBe(4);
 
-		expr = { type: 'FunctionCall', name: 'round', arguments: [{ type: 'Literal', value: 4.5 }] };
+		expr = {
+			type: 'FunctionCall',
+			name: 'round',
+			arguments: [{ type: 'Literal', value: 4.5 }],
+		};
 		expect(evaluator.evaluate(expr)).toBe(5);
 
-		expr = { type: 'FunctionCall', name: 'sqrt', arguments: [{ type: 'Literal', value: 5 }] };
+		expr = {
+			type: 'FunctionCall',
+			name: 'sqrt',
+			arguments: [{ type: 'Literal', value: 5 }],
+		};
 		expect(evaluator.evaluate(expr)).toBeCloseTo(2.236);
 	});
 
 	it('should evaluate type functions', () => {
-		const expr = { type: 'FunctionCall', name: 'toString', arguments: [{ type: 'Literal', value: 42 }] };
+		const expr = {
+			type: 'FunctionCall',
+			name: 'toString',
+			arguments: [{ type: 'Literal', value: 42 }],
+		};
 		expect(evaluator.evaluate(expr)).toBe('42');
 
 		expr.name = 'type';
@@ -630,24 +732,47 @@ describe('ExpressionEvaluator', () => {
 	});
 
 	it('should evaluate collection functions', () => {
-		let expr = { type: 'FunctionCall', name: 'size', arguments: [{ type: 'Literal', value: [1, 2, 3] }] };
+		let expr = {
+			type: 'FunctionCall',
+			name: 'size',
+			arguments: [{ type: 'Literal', value: [1, 2, 3] }],
+		};
 		expect(evaluator.evaluate(expr)).toBe(3);
 
-		expr = { type: 'FunctionCall', name: 'head', arguments: [{ type: 'Literal', value: [1, 2, 3] }] };
+		expr = {
+			type: 'FunctionCall',
+			name: 'head',
+			arguments: [{ type: 'Literal', value: [1, 2, 3] }],
+		};
 		expect(evaluator.evaluate(expr)).toBe(1);
 
-		expr = { type: 'FunctionCall', name: 'last', arguments: [{ type: 'Literal', value: [1, 2, 3] }] };
+		expr = {
+			type: 'FunctionCall',
+			name: 'last',
+			arguments: [{ type: 'Literal', value: [1, 2, 3] }],
+		};
 		expect(evaluator.evaluate(expr)).toBe(3);
 
-		expr = { type: 'FunctionCall', name: 'collect', arguments: [{ type: 'Literal', value: 5 }] };
+		expr = {
+			type: 'FunctionCall',
+			name: 'collect',
+			arguments: [{ type: 'Literal', value: 5 }],
+		};
 		expect(evaluator.evaluate(expr)).toEqual([5]);
 
-		expr = { type: 'FunctionCall', name: 'reverse', arguments: [{ type: 'Literal', value: [1, 2, 3] }] };
+		expr = {
+			type: 'FunctionCall',
+			name: 'reverse',
+			arguments: [{ type: 'Literal', value: [1, 2, 3] }],
+		};
 		expect(evaluator.evaluate(expr)).toEqual([3, 2, 1]);
 	});
 
 	it('should evaluate expression with custom context', () => {
-		const result = evaluator.evaluate({ type: 'Identifier', name: 'x' }, { x: 100 });
+		const result = evaluator.evaluate(
+			{ type: 'Identifier', name: 'x' },
+			{ x: 100 }
+		);
 		expect(result).toBe(100);
 	});
 });
@@ -666,10 +791,16 @@ describe('Registry', () => {
 	it('should register and get a storage adapter', () => {
 		class MockAdapter extends StorageAdapter {
 			async save() {}
-			async load() { return null; }
+			async load() {
+				return null;
+			}
 			async delete() {}
-			async exists() { return false; }
-			async listKeys() { return []; }
+			async exists() {
+				return false;
+			}
+			async listKeys() {
+				return [];
+			}
 			async clear() {}
 		}
 		const adapter = new MockAdapter();
@@ -684,10 +815,16 @@ describe('Registry', () => {
 	it('should check if adapter exists', () => {
 		class MockAdapter extends StorageAdapter {
 			async save() {}
-			async load() { return null; }
+			async load() {
+				return null;
+			}
 			async delete() {}
-			async exists() { return false; }
-			async listKeys() { return []; }
+			async exists() {
+				return false;
+			}
+			async listKeys() {
+				return [];
+			}
 			async clear() {}
 		}
 		const adapter = new MockAdapter();
@@ -699,10 +836,16 @@ describe('Registry', () => {
 	it('should unregister an adapter', () => {
 		class MockAdapter extends StorageAdapter {
 			async save() {}
-			async load() { return null; }
+			async load() {
+				return null;
+			}
 			async delete() {}
-			async exists() { return false; }
-			async listKeys() { return []; }
+			async exists() {
+				return false;
+			}
+			async listKeys() {
+				return [];
+			}
 			async clear() {}
 		}
 		const adapter = new MockAdapter();
@@ -714,10 +857,16 @@ describe('Registry', () => {
 	it('should list registered adapters', () => {
 		class MockAdapter extends StorageAdapter {
 			async save() {}
-			async load() { return null; }
+			async load() {
+				return null;
+			}
 			async delete() {}
-			async exists() { return false; }
-			async listKeys() { return []; }
+			async exists() {
+				return false;
+			}
+			async listKeys() {
+				return [];
+			}
 			async clear() {}
 		}
 		registry.register('test1', new MockAdapter());
