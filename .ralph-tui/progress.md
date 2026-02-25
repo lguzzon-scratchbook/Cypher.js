@@ -64,6 +64,47 @@ class Node {
 }
 ```
 
+### Pattern: Conveyor Belt Operation Chain
+Query operations (Match, Create, Merge, Return, etc.) chain via setPreviousOperation/setNextOperation forming execution pipeline. Each operation's doIt() triggers next operation.
+```javascript
+class Return {
+    setNextOperation(operation) {
+        this._nextOperation = operation;
+        if (operation && operation.setPreviousOperation) {
+            operation.setPreviousOperation(this);
+        }
+    }
+    doIt() {
+        // ... processing
+        if (this._nextOperation) {
+            this._nextOperation.doIt();
+        }
+    }
+    finish() {
+        // ... final processing
+        if (this._nextOperation) {
+            this._nextOperation.finish();
+        }
+    }
+}
+```
+
+### Pattern: Function Definition Optimization
+Operations use self-replacing function for optimization - replaces doIt() implementation after first call for subsequent calls.
+```javascript
+doIt() {
+    // First call: setup and replace self
+    var self = this;
+    this.doIt = function() {
+        // Optimized version used from now on
+        for (var i = 0; i < self._patterns.length; i++) {
+            self._patterns[i].match();
+        }
+    };
+    this.doIt();
+}
+```
+
 ---
 
 ## US-001 - Cypher.js Analysis Complete
@@ -264,3 +305,37 @@ class Node {
   - _removeRelationship() - Removes relationship from internal store
 ---
 
+## 2026-02-25 - US-006
+- What was implemented: Implemented return/result handling module with Return, With, and OrderBy classes
+- Files created:
+  - js/CypherNG/query/Return.js - Main RETURN clause execution engine
+  - js/CypherNG/query/With.js - WITH clause handling (extends Return)
+  - js/CypherNG/query/OrderBy.js - ORDER BY clause support
+- Files modified:
+  - js/CypherNG/query/index.js - Added exports for new classes
+  - js/CypherNG/index.js - Added exports for new classes
+- **Acceptance Criteria Status:**
+  - [x] Handle RETURN clauses - Return class handles RETURN execution with full pipeline
+  - [x] Process aggregations (count, collect, etc.) - Uses GroupBy for aggregation
+  - [x] Support ORDER BY - OrderBy class with sort direction (ASC/DESC)
+  - [x] Support LIMIT - Integrated in Return class
+  - [x] Match existing result handling behavior - Follows original Cypher.js Return factory function pattern
+- **Learnings:**
+  - Original Return uses factory function pattern; converted to ES6 class
+  - Return class supports WHERE, LIMIT, GROUP BY integration via GroupBy
+  - ReturnValue class handles individual return expressions with hidden flag support
+  - GroupBy uses Trie structure for aggregation (already implemented)
+  - Conveyor belt pattern: operations chain via setPreviousOperation/setNextOperation
+  - doIt() uses function definition optimization (replaces itself after first call)
+  - ORDER BY not found in test cases, but documented as supported in query types
+  - Limit applied during execution - stops processing when limit reached
+- **Patterns discovered:**
+  - Operations chain via conveyor belt pattern
+  - nextAction callback propagates through pattern chain for each result
+  - Execution flow: doIt() -> internalDoIt() -> (with GROUP: GroupBy.beginMap() -> aggregate -> GroupBy.print()) -> nextOperation.finish() -> statement.success()
+- **Gotchas:**
+  - GROUP BY with aggregation requires GroupBy.beginMap() then GroupBy.print() to read results
+  - Hidden return values are used in array expressions to handle each element
+  - mapReturnValues used for non-reduce, mappable expressions in GROUP BY context
+  - reduceExpressions handle aggregation functions (count, collect, etc.)
+---

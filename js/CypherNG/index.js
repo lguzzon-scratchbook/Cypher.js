@@ -13,7 +13,7 @@ const { Statement } = parser;
 
 // Query execution module
 const query = require('./query');
-const { Pattern, Where, ReturnValue, GroupBy, Variable, Setter, Match, Create, Merge, Delete, operations } = query;
+const { Pattern, Where, ReturnValue, GroupBy, Variable, Return, With, OrderBy, Setter, Match, Create, Merge, Delete, operations } = query;
 
 // Utils
 const utils = require('./utils');
@@ -34,6 +34,9 @@ module.exports = {
     ReturnValue,
     GroupBy,
     Variable,
+    Return,
+    With,
+    OrderBy,
     Setter,
     Match,
     Create,
