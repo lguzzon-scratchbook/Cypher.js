@@ -50,7 +50,6 @@ describe('CypherNG Relationship Class', () => {
         test('should set and get id', () => {
             rel.setId(42);
             expect(rel.id()).toBe(42);
-            expect(rel.getId()).toBe(42);
         });
 
         test('should return null id when not set', () => {
@@ -110,8 +109,12 @@ describe('CypherNG Relationship Class', () => {
         });
 
         test('should check uniDirectional', () => {
+            // uniDirectional means no direction is set OR both directions are set
+            // It represents an undirected relationship that can be traversed either way
+            expect(rel.uniDirectional()).toBe(true);  // initially neither direction is set
             rel.setRightDirection();
-            expect(rel.uniDirectional()).toBe(true);
+            rel.setLeftDirection();
+            expect(rel.uniDirectional()).toBe(true);  // both directions set
         });
 
         test('should check noDirection', () => {

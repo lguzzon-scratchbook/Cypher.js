@@ -66,7 +66,7 @@ describe('CypherNG Database Class', () => {
         test('should get node by ID', () => {
             const node = new Node(db);
             node.setId(42);
-            db.addNode(node);
+            db.addNode(node, 42);  // Provide explicit ID when adding
             expect(db.getNodeById(42)).toBe(node);
         });
 

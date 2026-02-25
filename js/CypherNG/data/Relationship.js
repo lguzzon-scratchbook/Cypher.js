@@ -251,18 +251,18 @@ class Relationship {
 
     /**
      * Sets left direction
-     * @param {boolean} leftDirection - Left direction flag
+     * @param {boolean} leftDirection - Left direction flag (default true)
      */
     setLeftDirection(leftDirection) {
-        this._leftDirection = leftDirection;
+        this._leftDirection = leftDirection !== undefined ? leftDirection : true;
     }
 
     /**
      * Sets right direction
-     * @param {boolean} rightDirection - Right direction flag
+     * @param {boolean} rightDirection - Right direction flag (default true)
      */
     setRightDirection(rightDirection) {
-        this._rightDirection = rightDirection;
+        this._rightDirection = rightDirection !== undefined ? rightDirection : true;
     }
 
     /**

@@ -265,7 +265,7 @@ class Node {
      * @returns {Object} Properties object
      */
     getProperties() {
-        return Object.create(this._properties);
+        return {...this._properties};
     }
 
     /**

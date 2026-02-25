@@ -162,8 +162,7 @@ describe('CypherNG - Data Structure Equivalence Tests', () => {
         });
 
         test('should get relationships by type', () => {
-            const db = new Database();
-            const { nodes, relationships } = createTestDatabase();
+            const { db, relationships } = createTestDatabase();
 
             // Test that relationships exist and can be queried by type
             const knowsRels = db.getRelationshipsByType('KNOWS');
@@ -177,7 +176,8 @@ describe('CypherNG - Data Structure Equivalence Tests', () => {
         test('should get relationships between nodes', () => {
             const { db } = createTestDatabase();
 
-            const rels = db.getRelationshipsBetween(1, 2);
+            // IDs are 100, 101, 102 in createTestDatabase
+            const rels = db.getRelationshipsBetween(100, 101);
             expect(rels.length).toBeGreaterThan(0);
             expect(rels[0].getType()).toBe('KNOWS');
         });
@@ -185,8 +185,9 @@ describe('CypherNG - Data Structure Equivalence Tests', () => {
         test('should get all relationships for a node', () => {
             const { db } = createTestDatabase();
 
-            const node1Rels = db.getRelationshipsByNodeId(1);
-            // Should have outgoing relationships from node 1
+            // Node with ID 100 has outgoing relationships
+            const node1Rels = db.getRelationshipsByNodeId(100);
+            // Should have outgoing relationships from node 100
             expect(node1Rels.length).toBeGreaterThanOrEqual(2);
         });
     });

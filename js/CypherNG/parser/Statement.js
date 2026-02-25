@@ -45,7 +45,8 @@ class Statement {
      * @throws If RETURN is added when one already exists
      */
     addOperation(operation) {
-        if (this.context() && this.context().type() === 'Return') {
+        const ctx = this.context();
+        if (ctx && typeof ctx.type === 'function' && ctx.type() === 'Return') {
             throw new Error('There can only be one return statement and it must be last in the query.');
         }
         if (this.context()) {

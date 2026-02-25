@@ -98,6 +98,10 @@ class GroupBy {
      * @returns {Object} Reducer object
      */
     getReducer(reducerIdx) {
+        if (!this._currentTrieNode) {
+            // Initialize trie if not already done
+            this.beginMap();
+        }
         if (!this._currentTrieNode.reducers) {
             this._currentTrieNode.reducers = new Array(this._reducersCount);
         }
@@ -119,6 +123,9 @@ class GroupBy {
      * Prints the trie (processes aggregated results)
      */
     print() {
+        if (!this._trieRoot) {
+            return;
+        }
         this._printTrie(this._trieRoot);
     }
 
@@ -126,6 +133,9 @@ class GroupBy {
      * @private
      */
     _printTrie(trieNode) {
+        if (!trieNode || !trieNode.map) {
+            return;
+        }
         let key;
         for (key in trieNode.map) {
             this._context.setNextMapValue(trieNode.map[key].value);

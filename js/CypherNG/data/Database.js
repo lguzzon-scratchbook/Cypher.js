@@ -341,16 +341,27 @@ class Database {
      * @param {number} [givenId] - Optional specific ID
      */
     addNode(node, givenId) {
-        if (!givenId) {
-            node.setId(this._getFreeNodeId());
-            this._nodes[node.id()] = node;
-        } else if (givenId) {
-            if (this._nodes[givenId]) {
-                throw "Node with ID " + givenId + " already exists in the database.";
-            }
-            node.setId(givenId);
-            this._nodes[givenId] = node;
+        // Determine the node ID: use givenId if provided, otherwise use node's existing ID, or generate new one
+        var nodeId = givenId;
+        if (!nodeId && node.id()) {
+            // Node already has an ID, use that
+            nodeId = node.id();
+        } else if (!nodeId) {
+            // Generate new ID
+            nodeId = this._getFreeNodeId();
         }
+
+        // Always set the ID on the node (unless already set to same value)
+        if (node.id() !== nodeId) {
+            node.setId(nodeId);
+        }
+
+        // Check for duplicate - always check if ID already exists
+        if (this._nodes[nodeId]) {
+            throw "Node with ID " + nodeId + " already exists in the database.";
+        }
+
+        this._nodes[nodeId] = node;
 
         // Index properties
         var rawProps = node.getRawProperties();
