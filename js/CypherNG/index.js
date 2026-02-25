@@ -34,7 +34,7 @@ const { Node, Relationship, Database } = data;
 
 // Parser module
 const parser = require('./parser');
-const { Statement } = parser;
+const { Statement, Parser } = parser;
 
 // Query execution module
 const query = require('./query');
@@ -60,6 +60,8 @@ const CypherNG = {
     // Parser
     /** @type {Statement} */
     Statement,
+    /** @type {Parser} */
+    Parser,
 
     // Query operations
     /** @type {Pattern} */
