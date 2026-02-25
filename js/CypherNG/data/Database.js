@@ -668,6 +668,140 @@ class Database {
     }
 
     /**
+     * Gets relationships for a node (both incoming and outgoing)
+     * @param {number} nodeId - Node ID
+     * @returns {Relationship[]} Relationships connected to the node
+     */
+    getRelationshipsByNodeId(nodeId) {
+        var relationships = [];
+        var outgoing = this._lookupRelationshipIdsByNodeId(nodeId);
+        var incoming = this._lookupRelationshipIdsByNodeIdIncoming(nodeId);
+
+        if (outgoing) {
+            for (var i = 0; i < outgoing.length; i++) {
+                var rel = this.getRelationshipById(outgoing[i]);
+                if (rel) relationships.push(rel);
+            }
+        }
+        if (incoming) {
+            for (var j = 0; j < incoming.length; j++) {
+                var r = this.getRelationshipById(incoming[j]);
+                if (r && relationships.indexOf(r) === -1) relationships.push(r);
+            }
+        }
+        return relationships;
+    }
+
+    /**
+     * Removes a label-node ID lookup entry
+     * @private
+     * @param {string} label - Label name
+     * @param {number} nodeId - Node ID
+     */
+    _removeLabelNodeIdLookup(label, nodeId) {
+        var recodedLabel = this._recode(label);
+        if (this._labelNodeIdLookup[recodedLabel]) {
+            var idx = this._labelNodeIdLookup[recodedLabel].indexOf(nodeId);
+            if (idx !== -1) {
+                this._labelNodeIdLookup[recodedLabel].splice(idx, 1);
+            }
+        }
+    }
+
+    /**
+     * Removes a node ID from property lookup
+     * @private
+     * @param {string} key - Property key
+     * @param {*} value - Property value
+     * @param {number} nodeId - Node ID
+     */
+    _removeNodeIdFromPropertyLookup(key, value, nodeId) {
+        var recodedKey = this._recode(key);
+        var recodedValue = this._recode(value);
+        if (this._nodeIdLookup[recodedKey] && this._nodeIdLookup[recodedKey][recodedValue]) {
+            var idx = this._nodeIdLookup[recodedKey][recodedValue].indexOf(nodeId);
+            if (idx !== -1) {
+                this._nodeIdLookup[recodedKey][recodedValue].splice(idx, 1);
+            }
+        }
+    }
+
+    /**
+     * Removes a node
+     * @private
+     * @param {number} nodeId - Node ID
+     */
+    _removeNode(nodeId) {
+        if (this._nodes[nodeId]) {
+            this._nodes[nodeId] = null;
+            // Persist if storage adapter available
+            if (this._storageAdapter && this._storageAdapter.removeNode) {
+                this._storageAdapter.removeNode(nodeId);
+            }
+        }
+    }
+
+    /**
+     * Removes a relationship ID from node adjacency lookup
+     * @private
+     * @param {number} nodeId - Node ID
+     * @param {number} otherNodeId - Other node ID
+     * @param {number} relationshipId - Relationship ID
+     */
+    _removeRelationshipIdFromNodeIdLookup(nodeId, otherNodeId, relationshipId) {
+        if (this._relationshipLookup[nodeId] && this._relationshipLookup[nodeId][otherNodeId]) {
+            var idx = this._relationshipLookup[nodeId][otherNodeId].indexOf(relationshipId);
+            if (idx !== -1) {
+                this._relationshipLookup[nodeId][otherNodeId].splice(idx, 1);
+            }
+        }
+        // Also remove from relationship IDs lookup
+        if (this._relationshipIdsByNodeIdLookup[nodeId]) {
+            var idx2 = this._relationshipIdsByNodeIdLookup[nodeId].indexOf(relationshipId);
+            if (idx2 !== -1) {
+                this._relationshipIdsByNodeIdLookup[nodeId].splice(idx2, 1);
+            }
+        }
+        if (this._relationshipIdsByNodeIdLookupIncoming[nodeId]) {
+            var idx3 = this._relationshipIdsByNodeIdLookupIncoming[nodeId].indexOf(relationshipId);
+            if (idx3 !== -1) {
+                this._relationshipIdsByNodeIdLookupIncoming[nodeId].splice(idx3, 1);
+            }
+        }
+    }
+
+    /**
+     * Removes a relationship ID from type lookup
+     * @private
+     * @param {string} type - Relationship type
+     * @param {number} relationshipId - Relationship ID
+     */
+    _removeRelationshipIdFromTypeLookup(type, relationshipId) {
+        var recodedType = this._recode(type);
+        if (this._typeRelationshipIdLookup[recodedType]) {
+            var idx = this._typeRelationshipIdLookup[recodedType].indexOf(relationshipId);
+            if (idx !== -1) {
+                this._typeRelationshipIdLookup[recodedType].splice(idx, 1);
+            }
+        }
+    }
+
+    /**
+     * Removes a relationship
+     * @private
+     * @param {number} relationshipId - Relationship ID
+     */
+    _removeRelationship(relationshipId) {
+        if (this._relationships[relationshipId]) {
+            this._relationships[relationshipId] = null;
+            // Persist if storage adapter available
+            if (this._storageAdapter && this._storageAdapter.removeRelationship) {
+                this._storageAdapter.removeRelationship(relationshipId);
+            }
+        }
+    }
+
+    /**
      * Gets type name
      * @returns {string} Type name
      */

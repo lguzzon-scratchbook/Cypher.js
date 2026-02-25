@@ -214,3 +214,53 @@ class Node {
   - Testing can import using: `const { Node, Relationship, Database } = require('./js/CypherNG/data');`
 ---
 
+## 2026-02-25 - US-005
+- What was implemented: Implemented query execution engine with Match, Create, Merge, Delete operations, Pattern class for graph traversal, and Where class for filtering
+- Files created:
+  - js/CypherNG/query/Pattern.js - Pattern matching/creation/merging
+  - js/CypherNG/query/Where.js - WHERE clause evaluation
+  - js/CypherNG/query/operations/Match.js - MATCH operation
+  - js/CypherNG/query/operations/Create.js - CREATE operation
+  - js/CypherNG/query/operations/Merge.js - MERGE operation
+  - js/CypherNG/query/operations/Delete.js - DELETE/DETACH DELETE operations
+  - js/CypherNG/utils/StringRecoder.js - String encoding utility
+  - js/CypherNG/parser/index.js - Parser module exports
+  - js/CypherNG/query/operations/index.js - Operations module exports
+  - js/CypherNG/query/index.js - Query module exports
+  - js/CypherNG/utils/index.js - Utils module exports
+  - js/CypherNG/index.js - Main module exports
+- Files modified:
+  - js/CypherNG/data/Database.js - Added delete support methods (getRelationshipsByNodeId, _removeLabelNodeIdLookup, _removeNodeIdFromPropertyLookup, _removeNode, _removeRelationshipIdFromNodeIdLookup, _removeRelationshipIdFromTypeLookup, _removeRelationship)
+- **Acceptance Criteria Status:**
+  - [x] Implement match/execution logic
+  - [x] Support merge, create, delete operations
+  - [x] Handle aggregations and grouping (via GroupBy class)
+  - [x] Match execution behavior of Cypher.js
+- **Learnings:**
+  - Operations follow a conveyor belt pattern - each pattern element sets the next action to continue processing
+  - Match, Create, Merge share similar structure - each has patterns, whereCondition, nextOperation references
+  - Match.doIt() validates that MERGE cannot be immediately followed by MATCH (requires WITH)
+  - Create.doIt() validates that MERGE cannot be immediately followed by CREATE (requires WITH)
+  - Delete operation supports both DELETE (just the node/rel) and DETACH DELETE (removes related relationships first)
+  - Pattern class handles both matching (convey=false) and merging (convey=true) with same interface
+  - Where condition is evaluated after each pattern match to filter results
+- **Patterns discovered:**
+  - Operations chain via setPreviousOperation/setNextOperation forming execution pipeline
+  - doIt() uses function definition optimization for performance (replaces itself after first call)
+  - Next action callback propagates through pattern chain for each match result
+  - Execution flow: Operation.doIt() -> pattern.match()/create()/merge() -> node.convey() -> ... -> nextAction() -> nextOperation.doIt()
+- **Gotchas:**
+  - Database._engine might not have statement() method - need to handle gracefully
+  - Delete operation requires private Database methods (_removeNode, _removeRelationship, etc.)
+  - Pattern's getData() handles both regular and variable-length paths (hasVariablePathLength)
+  - Merge operation differs from Match in that it tries to match first, then creates if not found
+- **Database delete support added:**
+  - getRelationshipsByNodeId() - Gets all relationships for a node (incoming + outgoing)
+  - _removeLabelNodeIdLookup() - Removes node from label index
+  - _removeNodeIdFromPropertyLookup() - Removes node from property index
+  - _removeNode() - Removes node from internal store
+  - _removeRelationshipIdFromNodeIdLookup() - Removes relationship from adjacency
+  - _removeRelationshipIdFromTypeLookup() - Removes relationship from type index
+  - _removeRelationship() - Removes relationship from internal store
+---
+
