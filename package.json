@@ -1,45 +1,45 @@
 {
-  "name": "cypher.js",
-  "version": "1.0.0",
-  "description": "CypherNG - Refactored Cypher graph database implementation",
-  "type": "module",
-  "main": "./dist/cjs/index.cjs",
-  "module": "./dist/esm/index.js",
-  "exports": {
-    ".": {
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.cjs",
-      "types": "./dist/esm/index.d.ts"
-    },
-    "./package.json": "./package.json"
-  },
-  "types": "./dist/esm/index.d.ts",
-  "files": [
-    "dist",
-    "js"
-  ],
-  "scripts": {
-    "test": "bun test ./tests/shared/*.test.js",
-    "test:coverage": "bun test ./tests/shared/*.test.js --coverage",
-    "lint": "biome check --write js/",
-    "build": "bun run build.js",
-    "prepublish": "bun run build"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.4.4",
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {},
-  "keywords": [
-    "cypher",
-    "graph",
-    "database",
-    "neo4j"
-  ],
-  "author": "",
-  "license": "MIT",
-  "private": true
+	"name": "cypher.js",
+	"version": "1.0.0",
+	"description": "CypherNG - Refactored Cypher graph database implementation",
+	"type": "module",
+	"main": "./dist/cjs/index.cjs",
+	"module": "./dist/esm/index.js",
+	"exports": {
+		".": {
+			"import": "./dist/esm/index.js",
+			"require": "./dist/cjs/index.cjs",
+			"types": "./dist/esm/index.d.ts"
+		},
+		"./package.json": "./package.json"
+	},
+	"types": "./dist/esm/index.d.ts",
+	"files": [
+		"dist",
+		"js"
+	],
+	"scripts": {
+		"test": "bun test ./tests/shared/*.test.js",
+		"test:coverage": "bun test ./tests/shared/*.test.js --coverage",
+		"lint": "biome check --write src/ js/",
+		"build": "bun run build.js",
+		"prepublish": "bun run build"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.4",
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {},
+	"keywords": [
+		"cypher",
+		"graph",
+		"database",
+		"neo4j"
+	],
+	"author": "",
+	"license": "MIT",
+	"private": true
 }

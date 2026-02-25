@@ -57,6 +57,11 @@ export class QueryParser {
 			'WITH',
 			'UNWIND',
 			'CALL',
+			'WHERE',
+			'ORDER',
+			'SKIP',
+			'LIMIT',
+			'LOAD',
 		];
 	}
 
@@ -94,6 +99,8 @@ export class QueryParser {
 
 		for (let i = 0; i < query.length; i++) {
 			const char = query[i];
+			const prevChar = query[i - 1] || '';
+			const nextChar = query[i + 1] || '';
 
 			if ((char === '"' || char === "'") && !inString) {
 				inString = true;
@@ -110,6 +117,10 @@ export class QueryParser {
 					current = '';
 				}
 			} else if (!inString && this.isDelimiter(char)) {
+				if (char === '.' && /\d/.test(prevChar) && /\d/.test(nextChar)) {
+					current += char;
+					continue;
+				}
 				if (current) {
 					tokens.push(current);
 					current = '';
@@ -133,7 +144,7 @@ export class QueryParser {
 	 * @returns {boolean}
 	 */
 	isDelimiter(char) {
-		return '(){},[]=<>.*+-/'.includes(char);
+		return '(){},[]=<>.*:+-/'.includes(char);
 	}
 
 	/**
@@ -156,6 +167,17 @@ export class QueryParser {
 			const token = tokens[i].toUpperCase();
 
 			if (this.isClauseStarter(token)) {
+				// Handle STARTS WITH and ENDS WITH as compound operators within WHERE
+				if (token === 'WITH' && currentClause) {
+					const prevTokens = currentClause.body;
+					const lastToken = prevTokens[prevTokens.length - 1]?.toUpperCase();
+					if (lastToken === 'STARTS' || lastToken === 'ENDS') {
+						currentClause.body.push(tokens[i]);
+						i++;
+						continue;
+					}
+				}
+
 				if (currentClause) {
 					ast.clauses.push(currentClause);
 				}

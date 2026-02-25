@@ -906,4 +906,542 @@ describe('QueryExecutor', () => {
 		const result = await executor.executeAsync('RETURN 1');
 		expect(result).toBeInstanceOf(QueryResult);
 	});
+
+	describe('handleMatch', () => {
+		beforeEach(() => {
+			engine.createNode(['Person'], { name: 'Alice', age: 30 });
+			engine.createNode(['Person'], { name: 'Bob', age: 25 });
+			engine.createNode(['Company'], { name: 'Acme' });
+		});
+
+		it('should match all nodes with empty pattern', () => {
+			const result = executor.executeSync('MATCH (n) RETURN n');
+			expect(result.data).toHaveLength(3);
+		});
+
+		it('should match nodes by label', () => {
+			const result = executor.executeSync('MATCH (n:Person) RETURN n');
+			expect(result.data).toHaveLength(2);
+			for (const row of result.data) {
+				expect(row.n.hasLabel('Person')).toBe(true);
+			}
+		});
+
+		it('should match nodes by property', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person {name: "Alice"}) RETURN n'
+			);
+			expect(result.data).toHaveLength(1);
+			expect(result.data[0].n.get('name')).toBe('Alice');
+		});
+
+		it('should match nodes with multiple labels', () => {
+			engine.createNode(['Person', 'Employee'], { name: 'Charlie' });
+			const result = executor.executeSync('MATCH (n:Person:Employee) RETURN n');
+			expect(result.data).toHaveLength(1);
+			expect(result.data[0].n.get('name')).toBe('Charlie');
+		});
+
+		it('should return empty for no matches', () => {
+			const result = executor.executeSync('MATCH (n:NonExistent) RETURN n');
+			expect(result.data).toHaveLength(0);
+		});
+
+		it('should match relationships', () => {
+			const alice = engine.getNode(0);
+			const bob = engine.getNode(1);
+			engine.createRelationship(alice.id, bob.id, 'KNOWS', { since: 2020 });
+
+			const result = executor.executeSync(
+				'MATCH (a:Person)-[:KNOWS]->(b:Person) RETURN a, b'
+			);
+			expect(result.data).toHaveLength(1);
+			expect(result.data[0].a.get('name')).toBe('Alice');
+			expect(result.data[0].b.get('name')).toBe('Bob');
+		});
+
+		it('should match relationships with type constraint', () => {
+			const alice = engine.getNode(0);
+			const bob = engine.getNode(1);
+			engine.createRelationship(alice.id, bob.id, 'KNOWS', {});
+			engine.createRelationship(alice.id, bob.id, 'WORKS_WITH', {});
+
+			const result = executor.executeSync(
+				'MATCH (a)-[:KNOWS]->(b) RETURN a, b'
+			);
+			expect(result.data).toHaveLength(1);
+		});
+
+		it('should match bidirectional relationships', () => {
+			const alice = engine.getNode(0);
+			const bob = engine.getNode(1);
+			engine.createRelationship(alice.id, bob.id, 'KNOWS', {});
+
+			const result = executor.executeSync('MATCH (a)-[:KNOWS]-(b) RETURN a, b');
+			expect(result.data.length).toBeGreaterThanOrEqual(1);
+		});
+
+		it('should match with variable binding', () => {
+			const result = executor.executeSync('MATCH (p:Person) RETURN p');
+			expect(result.columns).toContain('p');
+			expect(result.data).toHaveLength(2);
+		});
+
+		it('should handle multiple patterns', () => {
+			const result = executor.executeSync(
+				'MATCH (a:Person), (c:Company) RETURN a, c'
+			);
+			expect(result.data).toHaveLength(2);
+		});
+	});
+
+	describe('handleCreate', () => {
+		it('should create a simple node', () => {
+			const result = executor.executeSync('CREATE (n) RETURN n');
+			expect(result.stats.nodesCreated).toBe(1);
+			expect(result.data).toHaveLength(1);
+		});
+
+		it('should create node with label', () => {
+			const result = executor.executeSync('CREATE (n:Person) RETURN n');
+			expect(result.stats.nodesCreated).toBe(1);
+			expect(result.data[0].n.hasLabel('Person')).toBe(true);
+		});
+
+		it('should create node with properties', () => {
+			const result = executor.executeSync(
+				'CREATE (n {name: "Alice", age: 30}) RETURN n'
+			);
+			expect(result.stats.nodesCreated).toBe(1);
+			expect(result.data[0].n.get('name')).toBe('Alice');
+			expect(result.data[0].n.get('age')).toBe(30);
+		});
+
+		it('should create node with labels and properties', () => {
+			const result = executor.executeSync(
+				'CREATE (n:Person:Employee {name: "Bob", active: true}) RETURN n'
+			);
+			expect(result.stats.nodesCreated).toBe(1);
+			expect(result.data[0].n.hasLabel('Person')).toBe(true);
+			expect(result.data[0].n.hasLabel('Employee')).toBe(true);
+			expect(result.data[0].n.get('name')).toBe('Bob');
+			expect(result.data[0].n.get('active')).toBe(true);
+		});
+
+		it('should create relationship between two new nodes', () => {
+			const result = executor.executeSync(
+				'CREATE (a:Person {name: "Alice"})-[:KNOWS {since: 2020}]->(b:Person {name: "Bob"}) RETURN a, b'
+			);
+			expect(result.stats.nodesCreated).toBe(2);
+			expect(result.stats.relationshipsCreated).toBe(1);
+			expect(result.data).toHaveLength(1);
+			expect(result.data[0].a.get('name')).toBe('Alice');
+			expect(result.data[0].b.get('name')).toBe('Bob');
+		});
+
+		it('should create relationship with variable', () => {
+			const result = executor.executeSync(
+				'CREATE (a:Person)-[r:KNOWS]->(b:Person) RETURN r'
+			);
+			expect(result.stats.relationshipsCreated).toBe(1);
+			expect(result.data[0].r.type).toBe('KNOWS');
+		});
+
+		it('should create relationship with left direction', () => {
+			const result = executor.executeSync(
+				'CREATE (a:Person)<-[:KNOWS]-(b:Person) RETURN a, b'
+			);
+			expect(result.stats.relationshipsCreated).toBe(1);
+		});
+
+		it('should create multiple patterns', () => {
+			const result = executor.executeSync(
+				'CREATE (a:Person), (b:Company) RETURN a, b'
+			);
+			expect(result.stats.nodesCreated).toBe(2);
+			expect(result.data).toHaveLength(1);
+		});
+
+		it('should track statistics correctly', () => {
+			const result = executor.executeSync(
+				'CREATE (a)-[:KNOWS]->(b)-[:WORKS_AT]->(c) RETURN a, b, c'
+			);
+			expect(result.stats.nodesCreated).toBe(3);
+			expect(result.stats.relationshipsCreated).toBe(2);
+		});
+	});
+
+	describe('handleMerge', () => {
+		beforeEach(() => {
+			engine.createNode(['Person'], { name: 'Alice' });
+		});
+
+		it('should create node when not found', () => {
+			const result = executor.executeSync(
+				'MERGE (n:Person {name: "Bob"}) RETURN n'
+			);
+			expect(result.stats.nodesCreated).toBe(1);
+			expect(result.stats.nodesMerged).toBe(0);
+		});
+
+		it('should match existing node', () => {
+			const result = executor.executeSync(
+				'MERGE (n:Person {name: "Alice"}) RETURN n'
+			);
+			expect(result.stats.nodesCreated).toBe(0);
+			expect(result.stats.nodesMerged).toBe(1);
+		});
+
+		it('should create node with labels only', () => {
+			const result = executor.executeSync('MERGE (n:Company) RETURN n');
+			expect(result.stats.nodesCreated).toBe(1);
+			expect(result.data[0].n.hasLabel('Company')).toBe(true);
+		});
+
+		it('should create relationship when not found', () => {
+			const result = executor.executeSync(
+				'MERGE (a:Person {name: "Alice"})-[:KNOWS]->(b:Person {name: "Bob"}) RETURN a, b'
+			);
+			expect(result.stats.nodesCreated).toBe(2);
+			expect(result.stats.relationshipsCreated).toBe(1);
+		});
+
+		it('should match existing relationship', () => {
+			const alice = engine.getNode(0);
+			const bob = engine.createNode(['Person'], { name: 'Bob' });
+			engine.createRelationship(alice.id, bob.id, 'KNOWS', {});
+
+			const result = executor.executeSync(
+				'MERGE (a:Person {name: "Alice"})-[:KNOWS]->(b:Person {name: "Bob"}) RETURN a, b'
+			);
+			expect(result.stats.nodesCreated).toBe(0);
+			expect(result.stats.relationshipsCreated).toBe(0);
+			expect(result.stats.relationshipsMerged).toBe(1);
+		});
+
+		it('should merge after MATCH', () => {
+			const result = executor.executeSync(
+				'MATCH (a:Person {name: "Alice"}) MERGE (b:Person {name: "Bob"}) RETURN a, b'
+			);
+			expect(result.stats.nodesCreated).toBe(1);
+			expect(result.data).toHaveLength(1);
+		});
+
+		it('should use matched node in relationship merge', () => {
+			const result = executor.executeSync(
+				'MATCH (a:Person {name: "Alice"}) MERGE (a)-[:KNOWS]->(b:Person {name: "Charlie"}) RETURN a, b'
+			);
+			expect(result.stats.nodesCreated).toBe(1);
+			expect(result.stats.relationshipsCreated).toBe(1);
+		});
+
+		it('should handle merge with variable', () => {
+			const result = executor.executeSync(
+				'MERGE (p:Person {name: "Alice"}) RETURN p'
+			);
+			expect(result.columns).toContain('p');
+			expect(result.stats.nodesMerged).toBe(1);
+		});
+	});
+
+	describe('handleReturn', () => {
+		beforeEach(() => {
+			engine.createNode(['Person'], { name: 'Alice', age: 30 });
+			engine.createNode(['Person'], { name: 'Bob', age: 25 });
+		});
+
+		it('should return simple variable', () => {
+			const result = executor.executeSync('MATCH (n) RETURN n');
+			expect(result.data).toHaveLength(2);
+			expect(result.columns).toContain('n');
+		});
+
+		it('should return property', () => {
+			const result = executor.executeSync('MATCH (n:Person) RETURN n.name');
+			expect(result.data).toHaveLength(2);
+			expect(result.columns).toContain('n.name');
+			expect(result.data[0]['n.name']).toBe('Alice');
+		});
+
+		it('should return with alias', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN n.name AS name'
+			);
+			expect(result.columns).toContain('name');
+			expect(result.data[0].name).toBe('Alice');
+		});
+
+		it('should return multiple expressions', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN n.name, n.age'
+			);
+			expect(result.columns).toContain('n.name');
+			expect(result.columns).toContain('n.age');
+		});
+
+		it('should return with function call', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN toUpper(n.name) AS upperName'
+			);
+			expect(result.columns).toContain('upperName');
+			expect(result.data[0].upperName).toBe('ALICE');
+		});
+
+		it('should return with arithmetic expression', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN n.age * 2 AS doubleAge'
+			);
+			expect(result.columns).toContain('doubleAge');
+			expect(result.data[0].doubleAge).toBe(60);
+		});
+
+		it('should return *', () => {
+			const result = executor.executeSync('MATCH (n:Person) RETURN *');
+			expect(result.columns).toContain('n');
+		});
+
+		it('should return DISTINCT values', () => {
+			engine.createNode(['Person'], { name: 'Alice', age: 35 });
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN DISTINCT n.name AS name'
+			);
+			const names = result.data.map((r) => r.name);
+			expect(names).toHaveLength(2);
+			expect(names).toContain('Alice');
+			expect(names).toContain('Bob');
+		});
+
+		it('should return literal values', () => {
+			const result = executor.executeSync('RETURN 42 AS num');
+			expect(result.data).toHaveLength(1);
+			expect(result.data[0].num).toBe(42);
+		});
+
+		it('should return string literals', () => {
+			const result = executor.executeSync('RETURN "hello" AS greeting');
+			expect(result.data).toHaveLength(1);
+			expect(result.data[0].greeting).toBe('hello');
+		});
+
+		it('should return with labels function', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN labels(n) AS labels'
+			);
+			expect(result.data[0].labels).toContain('Person');
+		});
+
+		it('should return with id function', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person {name: "Alice"}) RETURN id(n) AS nodeId'
+			);
+			expect(result.data[0].nodeId).toBe(0);
+		});
+	});
+
+	describe('handleWhere', () => {
+		beforeEach(() => {
+			engine.createNode(['Person'], { name: 'Alice', age: 30 });
+			engine.createNode(['Person'], { name: 'Bob', age: 25 });
+			engine.createNode(['Person'], { name: 'Charlie', age: 35 });
+		});
+
+		it('should filter by property equality', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE n.name = "Alice" RETURN n'
+			);
+			expect(result.data).toHaveLength(1);
+			expect(result.data[0].n.get('name')).toBe('Alice');
+		});
+
+		it('should filter by property comparison', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE n.age > 25 RETURN n'
+			);
+			expect(result.data).toHaveLength(2);
+			const names = result.data.map((r) => r.n.get('name'));
+			expect(names).toContain('Alice');
+			expect(names).toContain('Charlie');
+		});
+
+		it('should filter by multiple conditions with AND', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE n.age > 25 AND n.age < 35 RETURN n'
+			);
+			expect(result.data).toHaveLength(1);
+			expect(result.data[0].n.get('name')).toBe('Alice');
+		});
+
+		it('should filter by multiple conditions with OR', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE n.name = "Alice" OR n.name = "Bob" RETURN n'
+			);
+			expect(result.data).toHaveLength(2);
+		});
+
+		it('should filter with NOT', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE NOT n.name = "Alice" RETURN n'
+			);
+			expect(result.data).toHaveLength(2);
+			expect(result.data.map((r) => r.n.get('name'))).not.toContain('Alice');
+		});
+
+		it('should filter with CONTAINS', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE n.name CONTAINS "a" RETURN n'
+			);
+			expect(result.data).toHaveLength(1);
+			expect(result.data[0].n.get('name')).toBe('Charlie');
+		});
+
+		it('should filter with STARTS WITH', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE n.name STARTS WITH "A" RETURN n'
+			);
+			expect(result.data).toHaveLength(1);
+			expect(result.data[0].n.get('name')).toBe('Alice');
+		});
+
+		it('should filter with ENDS WITH', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE n.name ENDS WITH "e" RETURN n'
+			);
+			expect(result.data).toHaveLength(2);
+			const names = result.data.map((r) => r.n.get('name'));
+			expect(names).toContain('Alice');
+			expect(names).toContain('Charlie');
+		});
+
+		it('should filter with IN', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE n.name IN ["Alice", "Bob"] RETURN n'
+			);
+			expect(result.data).toHaveLength(2);
+		});
+
+		it('should filter with IS NULL', () => {
+			engine.createNode(['Person'], { name: 'David' });
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE n.age IS NULL RETURN n'
+			);
+			expect(result.data).toHaveLength(1);
+			expect(result.data[0].n.get('name')).toBe('David');
+		});
+
+		it('should filter with IS NOT NULL', () => {
+			engine.createNode(['Person'], { name: 'David' });
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE n.age IS NOT NULL RETURN n'
+			);
+			expect(result.data).toHaveLength(3);
+		});
+
+		it('should filter with range comparison', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE n.age >= 30 RETURN n'
+			);
+			expect(result.data).toHaveLength(2);
+		});
+
+		it('should filter with not equal', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) WHERE n.name <> "Alice" RETURN n'
+			);
+			expect(result.data).toHaveLength(2);
+		});
+	});
+
+	describe('ORDER BY, SKIP, LIMIT', () => {
+		let engine;
+		let executor;
+
+		beforeEach(() => {
+			engine = new GraphEngine();
+			executor = new QueryExecutor(engine);
+			engine.createNode(['Person'], { name: 'Alice', age: 30 });
+			engine.createNode(['Person'], { name: 'Bob', age: 25 });
+			engine.createNode(['Person'], { name: 'Charlie', age: 35 });
+			engine.createNode(['Person'], { name: 'David', age: 20 });
+		});
+
+		it('should ORDER BY ascending', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN n.name ORDER BY n.name ASC'
+			);
+			expect(result.data).toHaveLength(4);
+			expect(result.data[0]['n.name']).toBe('Alice');
+			expect(result.data[1]['n.name']).toBe('Bob');
+			expect(result.data[2]['n.name']).toBe('Charlie');
+			expect(result.data[3]['n.name']).toBe('David');
+		});
+
+		it('should ORDER BY descending', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN n.name ORDER BY n.age DESC'
+			);
+			expect(result.data).toHaveLength(4);
+			expect(result.data[0]['n.name']).toBe('Charlie');
+			expect(result.data[1]['n.name']).toBe('Alice');
+			expect(result.data[2]['n.name']).toBe('Bob');
+			expect(result.data[3]['n.name']).toBe('David');
+		});
+
+		it('should ORDER BY with default ascending', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN n.name ORDER BY n.name'
+			);
+			expect(result.data[0]['n.name']).toBe('Alice');
+		});
+
+		it('should ORDER BY numeric values', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age ASC'
+			);
+			expect(result.data[0]['n.age']).toBe(20);
+			expect(result.data[1]['n.age']).toBe(25);
+			expect(result.data[2]['n.age']).toBe(30);
+			expect(result.data[3]['n.age']).toBe(35);
+		});
+
+		it('should SKIP rows', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN n.name ORDER BY n.name SKIP 2'
+			);
+			expect(result.data).toHaveLength(2);
+			expect(result.data[0]['n.name']).toBe('Charlie');
+			expect(result.data[1]['n.name']).toBe('David');
+		});
+
+		it('should LIMIT rows', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN n.name ORDER BY n.name LIMIT 2'
+			);
+			expect(result.data).toHaveLength(2);
+			expect(result.data[0]['n.name']).toBe('Alice');
+			expect(result.data[1]['n.name']).toBe('Bob');
+		});
+
+		it('should combine SKIP and LIMIT', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN n.name ORDER BY n.name SKIP 1 LIMIT 2'
+			);
+			expect(result.data).toHaveLength(2);
+			expect(result.data[0]['n.name']).toBe('Bob');
+			expect(result.data[1]['n.name']).toBe('Charlie');
+		});
+
+		it('should handle SKIP larger than results', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN n.name ORDER BY n.name SKIP 10'
+			);
+			expect(result.data).toHaveLength(0);
+		});
+
+		it('should handle LIMIT larger than results', () => {
+			const result = executor.executeSync(
+				'MATCH (n:Person) RETURN n.name LIMIT 100'
+			);
+			expect(result.data).toHaveLength(4);
+		});
+	});
 });
