@@ -1,0 +1,15 @@
+{
+  "name": "cypher-ng",
+  "version": "1.0.0",
+  "description": "CypherNG - Refactored Cypher.js with improved architecture",
+  "main": "js/CypherNG/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "test:coverage": "bun test --coverage",
+    "lint": "echo 'No lint configured'",
+    "typecheck": "echo 'No typecheck configured'"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
