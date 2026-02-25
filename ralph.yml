@@ -7,14 +7,14 @@
 #   ralph run --config presets/refactor.yml --prompt "Extract the auth logic into a separate module"
 
 event_loop:
-  prompt_file: "PROMPT.md"
+  prompt_file: "specs/cypherjs-refactor/PROMPT.md"
   completion_promise: "REFACTOR_COMPLETE"
   max_iterations: 50
   max_runtime_seconds: 10800
   checkpoint_interval: 3
 
 cli:
-  backend: "claude"
+  backend: "opencode"
 
 core:
   specs_dir: "./specs/"

@@ -133,7 +133,7 @@ export class QueryParser {
 	 * @returns {boolean}
 	 */
 	isDelimiter(char) {
-		return '(){},[]=<>.*+-/'.includes(char);
+		return '(){},[]=<>.*:+-/'.includes(char);
 	}
 
 	/**

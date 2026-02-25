@@ -35,7 +35,7 @@ Refactor `js/Cypher.js` (~7,559 lines) into modular `js/CypherNG.js` with:
 ### Behavioral Parity
 
 ```gherkin
-Given a Cypher query from js/Cypher.test.js
+Given a Cypher query from js/Cypher.test.js now `js/Cypher.test.js.bak`
 When executed against both Cypher.js and CypherNG.js
 Then both return identical results
 And both produce identical graph states

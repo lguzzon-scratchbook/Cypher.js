@@ -1,5 +1,5 @@
 {
-  "pid": 3767618,
-  "started": "2026-02-24T14:02:04.085228915Z",
-  "prompt": "specs/cypherjs-refactor/PROMPT.md"
+  "pid": 2793125,
+  "started": "2026-02-25T10:20:39.903048465Z",
+  "prompt": "# CypherNG Refactor Implementation Prompt\n\n## Objective\n\nRefactor `js/Cypher.js` (~7,559 lines) int..."
 }
