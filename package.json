@@ -1,0 +1,62 @@
+{
+  "name": "cypherdotjs",
+  "version": "1.0.10",
+  "description": "Cypher graph database for Javascript - CypherNG refactoring",
+  "main": "js/CypherNG/index.js",
+  "files": [
+    "js/CypherNG/",
+    "js/Cypher.js",
+    "js/Cypher.min.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/niclasko/Cypher.js.git"
+  },
+  "author": "Niclas Kjäll-Ohlsson",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/niclasko/Cypher.js/issues"
+  },
+  "homepage": "https://github.com/niclasko/Cypher.js#readme",
+  "bin": {
+    "cypher": "node/index.js"
+  },
+  "scripts": {
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --coverageReporters=html && open coverage/index.html",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "test:parity": "jest tests/parity",
+    "lint": "eslint js/CypherNG/**/*.js",
+    "build": "echo 'Minification not yet implemented'",
+    "preversion": "npm test",
+    "postversion": "git push && git push --tags"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov", "html"],
+    "collectCoverageFrom": [
+      "js/CypherNG/**/*.js",
+      "!js/CypherNG/**/test_*.js",
+      "!js/CypherNG/**/types.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 9,
+        "functions": 6,
+        "lines": 8,
+        "statements": 7
+      }
+    },
+    "verbose": true,
+    "testTimeout": 30000
+  }
+}
