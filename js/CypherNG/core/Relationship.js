@@ -571,10 +571,10 @@ function Relationship(db) {
 
     /**
      * Set the matched relationship ID.
-     * @param {number} relationshipId - The relationship ID
+     * @param {Object} relationship - The matched relationship instance
      */
-    this.setMatchedRelationship = function(relationshipId) {
-        matchedRelationship = relationshipId;
+    this.setMatchedRelationship = function(relationship) {
+        matchedRelationship = relationship.id();
     };
 
     /**

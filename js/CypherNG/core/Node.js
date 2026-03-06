@@ -480,10 +480,10 @@ function Node(db) {
 
     /**
      * Add a matched node ID.
-     * @param {number} nodeId - The matched node ID
+     * @param {Object} node - The matched node instance
      */
-    this.addMatchedNode = function(nodeId) {
-        matchedNode = nodeId;
+    this.addMatchedNode = function(node) {
+        matchedNode = node.id();
     };
 
     /**
