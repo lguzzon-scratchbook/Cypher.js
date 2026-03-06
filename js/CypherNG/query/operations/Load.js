@@ -374,7 +374,7 @@ function Load(_statement) {
         // Helper to add associative array functions
         var addAssociativeArrayFunctions = function(obj) {
             if (typeof module !== 'undefined' && module.exports) {
-                var utils = require('../structures/utils.js');
+                var utils = require('../../structures/utils.js');
                 return utils.addAssociativeArrayFunctions(obj);
             } else {
                 return CypherNG.structures.addAssociativeArrayFunctions(obj);
@@ -504,9 +504,10 @@ function Load(_statement) {
 
         var http;
         if (typeof module !== 'undefined' && module.exports) {
-            http = require('../network/HTTP.js').HTTP;
+            var HTTP = require('../../network/HTTP.js').HTTP;
+            http = new HTTP();
         } else {
-            http = CypherNG.network.HTTP;
+            http = CypherNG.network.http || new CypherNG.network.HTTP();
         }
 
         if (from.constructor == String) {
