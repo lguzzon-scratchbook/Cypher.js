@@ -7,6 +7,9 @@
 var Where = (typeof module !== 'undefined' && module.exports ?
     require('../Where.js').Where :
     CypherNG.query.Where);
+var Pattern = (typeof module !== 'undefined' && module.exports ?
+    require('../../core/Pattern.js').Pattern :
+    CypherNG.core.Pattern);
 
 /**
  * Merge - Represents a MERGE operation.

@@ -3,6 +3,19 @@
  * Represents a complete query statement container.
  */
 
+var Variable = (typeof module !== 'undefined' && module.exports ?
+    require('./Variable.js').Variable :
+    CypherNG.query.Variable);
+var clean = (typeof module !== 'undefined' && module.exports ?
+    require('../structures/utils.js').clean :
+    CypherNG.structures.clean);
+var NodeReference = (typeof module !== 'undefined' && module.exports ?
+    require('../core/References.js').NodeReference :
+    CypherNG.core.NodeReference);
+var RelationshipReference = (typeof module !== 'undefined' && module.exports ?
+    require('../core/References.js').RelationshipReference :
+    CypherNG.core.RelationshipReference);
+
 /**
  * Statement - Represents a complete query statement.
  * Manages operations, variables, output, and graph results.

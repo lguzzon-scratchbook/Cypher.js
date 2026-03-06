@@ -3,6 +3,10 @@
  * Represents a WITH operation (intermediary return).
  */
 
+var Return = (typeof module !== 'undefined' && module.exports ?
+    require('../Return.js').Return :
+    CypherNG.query.Return);
+
 /**
  * With - Represents a WITH operation.
  * Passes selected variables to the next part of the query.
@@ -13,6 +17,7 @@
  * @param {Object} _statement - The parent statement
  */
 function With(_statement) {
+    var statement = _statement;
 
     // Persistence Design Note: WITH is a query-flow control operation.
     // It does not persist data but controls query execution flow.

@@ -141,6 +141,35 @@
         // Create parser instance
         var queryParser = new parser.Parser(this);
 
+        var printStackTrace = function(f) {
+            var c = f;
+            try {
+                while (c) {
+                    c = c.caller;
+                }
+            } catch (e) {
+                // Best-effort debugging helper; ignore in strict environments.
+            }
+        };
+
+        if (queryParser.setDependencies) {
+            queryParser.setDependencies({
+                db: db,
+                statement: statement,
+                Pattern: core.Pattern,
+                Node: core.Node,
+                Relationship: core.Relationship,
+                Case: structures.Case,
+                FString: structures.FString,
+                List: structures.List,
+                AssociativeArray: structures.AssociativeArray,
+                Predicate: structures.Predicate,
+                Constant: structures.Constant,
+                Expression: query.Expression,
+                Unwind: query.operations.Unwind
+            });
+        }
+
         // Options
         var dataDownloadProxy;
 
@@ -277,7 +306,7 @@
         this.pattern = function() { statement.context().addPattern(); return this; };
         this.node = function() { statement.context().addNode(new core.Node(db)); return this; };
         this.relationship = function() { statement.context().addRelationship(new core.Relationship(db)); return this; };
-        this.expression = function() { statement.context().expression(parser.getExpression()); return this; };
+        this.expression = function() { statement.context().expression(queryParser.getExpression()); return this; };
         this.variable = function(key) { statement.context().variable(key); return this; };
         this.variableExists = function(key) { return statement.hasVariable(key); };
         this.getVariable = function(key) { return statement.getVariable(key); };

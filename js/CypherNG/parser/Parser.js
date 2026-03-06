@@ -24,6 +24,10 @@ var PredicateFunctionLookup = (typeof module !== 'undefined' && module.exports ?
     require('./PredicateFunctionLookup.js').PredicateFunctionLookup :
     (this.CypherNG && this.CypherNG.parser) ? this.CypherNG.parser.PredicateFunctionLookup : null);
 
+var addArrayFunctions = (typeof module !== 'undefined' && module.exports ?
+    require('../structures/utils.js').addArrayFunctions :
+    (this.CypherNG && this.CypherNG.structures) ? this.CypherNG.structures.addArrayFunctions : null);
+
 /**
  * Parser - Main Cypher query parser.
  *
@@ -1286,6 +1290,431 @@ function Parser(_engine) {
         rollbackPosition = undefined;
     };
 
+    function VariableReference(engine, variableKey) {
+        var _engine = engine;
+        var _variableKey = variableKey;
+        var me = this;
+
+        var getVariable = function() {
+            if (me.parent && me.parent.getLocalVariable) {
+                var value = me.parent.getLocalVariable(_variableKey);
+                if (value) {
+                    return value;
+                }
+            }
+            return _engine.statement().getVariable(_variableKey);
+        };
+        this.getObject = function() {
+            return getVariable().getObject();
+        };
+        this.value = function(asKey) {
+            return getVariable().value(asKey);
+        };
+        this.getKey = function() {
+            return _variableKey;
+        };
+        this.type = function() {
+            return getVariable().getObject().type();
+        };
+        this.groupByKey = function() {
+            var o = getVariable().getObject();
+            return (o.groupByKey && o.groupByKey()) || o;
+        };
+        this.groupByValue = function() {
+            var o = getVariable().getObject();
+            return (o.groupByValue && o.groupByValue()) || o;
+        };
+    }
+
+    function ExpressionElement(_element) {
+        var element = _element;
+        var precalculatedReadCount = 0;
+        var precalculatedValue = undefined;
+        var originalValueFunction = undefined;
+        var me = this;
+        var elementValueContext = this;
+        var parsedParameterCount = 0;
+        var expression = undefined;
+
+        element.parent = me;
+
+        this.element = function() {
+            return element;
+        };
+        this.precalculate = function() {
+            precalculatedReadCount = 0;
+            precalculatedValue = this.value();
+            originalValueFunction = this.value;
+            setValueFunction(consumePrepalculatedValue);
+        };
+        var consumePrepalculatedValue = function() {
+            if (precalculatedValue && precalculatedReadCount == 0) {
+                precalculatedReadCount++;
+                return precalculatedValue;
+            } else if (precalculatedValue && precalculatedReadCount == 1) {
+                var tmpPrepalculatedValue = precalculatedValue;
+                precalculatedValue = undefined;
+                precalculatedReadCount = 0;
+                setValueFunction(originalValueFunction);
+                return tmpPrepalculatedValue;
+            }
+            return undefined;
+        };
+        var setValueFunction = function(valueFunction) {
+            me.value = valueFunction;
+            me.groupByKey = me.value;
+            me.groupByValue = me.value;
+        };
+        this.elementValueContext = function() {
+            return elementValueContext;
+        };
+        this.elementValue = function() {
+            return element.value.call(elementValueContext);
+        };
+        this.type = element.type;
+        this.value = this.elementValue;
+        this.groupByKey = element.groupByKey || this.elementValue;
+        this.groupByValue = element.groupByValue || this.elementValue;
+        this.hasKey = function() {
+            return element.getKey && element.getKey();
+        };
+        this.parsedParameterCount = function() {
+            return parsedParameterCount;
+        };
+        this.verifyParsedParameterCount = function(_parsedParameterCount) {
+            if (element.constructor == _Function || element.constructor == AggregateFunction) {
+                parsedParameterCount = _parsedParameterCount;
+                element.verifyParsedParameterCount(parsedParameterCount);
+            }
+        };
+        this.non_deterministic = function() {
+            return element.non_deterministic();
+        };
+        this.mappable = function() {
+            if (element.mappable && !element.mappable()) {
+                return false;
+            }
+            if (this.p) {
+                for (var i = 0; i < this.p.length; i++) {
+                    if (this.p[i].mappable && !this.p[i].mappable()) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+        this.setExpression = function(_expression) {
+            expression = _expression;
+        };
+        this.getLocalVariable = function(key) {
+            if (expression) {
+                return expression.getLocalVariable(key);
+            }
+            return undefined;
+        };
+    }
+
+    function AggregateExpressionElement(_element) {
+        ExpressionElement.call(this, _element);
+
+        var distinct = false;
+        var groupBy;
+        var reducerId;
+
+        this.setReducer = function(_reducerId) {
+            reducerId = _reducerId;
+        };
+        this.setGroupBy = function(_groupBy) {
+            groupBy = _groupBy;
+        };
+        this.getGroupBy = function() {
+            return groupBy;
+        };
+        this.getReducerId = function() {
+            return reducerId;
+        };
+        this.initializeIfNecessary = function() {
+            this.initialize();
+        };
+        this.initialize = function() {
+            return this.element().initialize.call(this.elementValueContext());
+        };
+        this.aggregate = function() {
+            return this.element().aggregate.call(this.elementValueContext());
+        };
+        this.value = function() {
+            return this.element().value.call(this.elementValueContext());
+        };
+        this.groupByKey = function() {
+            return this.element().groupByKey.call(this.elementValueContext());
+        };
+        this.groupByValue = function() {
+            return this.element().groupByValue.call(this.elementValueContext());
+        };
+        this.hasKey = function() {
+            return this.element().getKey && this.element().getKey();
+        };
+        this.distinct = function() {
+            return distinct;
+        };
+        this.setDistinct = function() {
+            distinct = true;
+        };
+        this.mappable = function() {
+            return false;
+        };
+    }
+    AggregateExpressionElement.prototype = Object.create(ExpressionElement.prototype);
+    AggregateExpressionElement.prototype.constructor = AggregateExpressionElement;
+
+    var layers = [];
+    var output = [];
+    var operators = [];
+    var expressionElements = [];
+
+    var recordExpressionElement = function(element) {
+        expressionElements.push(element);
+        return element;
+    };
+
+    var reset = function() {
+        output = [];
+        operators = [];
+        expressionElements = [];
+    };
+
+    var lastOutput = function() {
+        if (output.length == 0) return null;
+        return output[output.length - 1];
+    };
+    var lastOperator = function() {
+        if (operators.length == 0) return null;
+        return operators[operators.length - 1];
+    };
+
+    this.addLayer = function() {
+        layers.push({
+            output: output,
+            operators: operators,
+            expressionElements: expressionElements,
+            rollbackPosition: rollbackPosition
+        });
+        reset();
+    };
+    this.finishLayer = function() {
+        var layer = layers.pop();
+        output = layer.output;
+        operators = layer.operators;
+        expressionElements = layer.expressionElements;
+        rollbackPosition = layer.rollbackPosition;
+    };
+
+    var addOutput = function(o) {
+        output.push(o);
+        return lastOutput();
+    };
+    var addToOperators = function(o) {
+        operators.push(o);
+        return lastOperator();
+    };
+
+    var precedenceConditionIsMet = function(op1, op2) {
+        if (op1.leftAssociativity() && op1.precedence() <= op2.precedence()) {
+            return true;
+        } else if (op1.rightAssociativity() && op1.precedence() < op2.precedence()) {
+            return true;
+        }
+        return false;
+    };
+    var addObjectLookup = function(element, key) {
+        if (!element.lookups) {
+            element.lookups = [];
+        }
+        element.lookups.push({
+            function: _Function.f.object_lookup,
+            index: recordExpressionElement(new ExpressionElement(new Constant(key)))
+        });
+    };
+    var addListLookup = function(element, expression) {
+        if (!element.lookups) {
+            element.lookups = [];
+        }
+        element.lookups.push({
+            function: _Function.f.array_lookup,
+            index: recordExpressionElement(new ExpressionElement(expression))
+        });
+    };
+    var noLookup = function() {
+        ;
+    };
+    var addConstant = function(value) {
+        return addOutput({
+            isAtom: true,
+            v: recordExpressionElement(new ExpressionElement(new Constant(value)))
+        }).v;
+    };
+    var addAllVariables = function() {
+        var vars = engine.statement().context().variables();
+        for (var i = 0; i < vars.length; i++) {
+            addVariable(vars[i].getObjectKey());
+            engine.expression();
+        }
+    };
+    var addVariable = function(key) {
+        return addOutput({
+            isAtom: true,
+            isVariable: true,
+            v: recordExpressionElement(
+                new ExpressionElement(
+                    new VariableReference(engine, key)
+                )
+            )
+        }).v;
+    };
+    var addPattern = function(pattern) {
+        return addOutput({
+            isAtom: true,
+            v: recordExpressionElement(new ExpressionElement(pattern))
+        }).v;
+    };
+    var removeLastPattern = function() {
+        if (lastOutput().v.element().constructor == Pattern) {
+            output.pop();
+        }
+    };
+    var addExpression = function(expression) {
+        return addOutput({
+            isAtom: true,
+            v: recordExpressionElement(new ExpressionElement(expression))
+        }).v;
+    };
+    var addList = function(list) {
+        return addOutput({
+            isAtom: true,
+            v: recordExpressionElement(new ExpressionElement(list))
+        }).v;
+    };
+    var addAssociativeArray = function(associativeArray) {
+        return addOutput({
+            isAtom: true,
+            v: recordExpressionElement(new ExpressionElement(associativeArray))
+        }).v;
+    };
+    var addCase = function(_case) {
+        return addOutput({
+            isAtom: true,
+            v: recordExpressionElement(new ExpressionElement(_case))
+        }).v;
+    };
+    var addPredicateFunction = function(predicateFunction) {
+        return addOutput({
+            isAtom: true,
+            v: recordExpressionElement(new ExpressionElement(predicateFunction))
+        }).v;
+    };
+    var addFString = function(fstring) {
+        return addOutput({
+            isAtom: true,
+            v: recordExpressionElement(new ExpressionElement(fstring))
+        }).v;
+    };
+    var addFunction = function(__function) {
+        return addToOperators({
+            isFunction: true,
+            v: recordExpressionElement(new ExpressionElement(__function))
+        }).v;
+    };
+    var addAggregateFunction = function(_aggregateFunction) {
+        return addToOperators({
+            isAggregateFunction: true,
+            isFunction: true,
+            v: recordExpressionElement(new AggregateExpressionElement(_aggregateFunction))
+        }).v;
+    };
+    var addOperator = function(operator) {
+        while (operators.length > 0 && ((operators.slice(-1)[0].isOperator || operators.slice(-1)[0].isFunction) &&
+                precedenceConditionIsMet(operator, operators.slice(-1)[0].v.element()))) {
+            output.push(operators.pop());
+        }
+        return addToOperators({
+            isOperator: true,
+            v: recordExpressionElement(new ExpressionElement(operator))
+        }).v;
+    };
+    var addOpeningParentheses = function() {
+        addToOperators({ leftParentheses: true });
+    };
+    var addClosingParentheses = function() {
+        while (operators.length > 0 && !operators.slice(-1)[0].leftParentheses) {
+            output.push(operators.pop());
+        }
+        operators.pop();
+    };
+    var finish = function() {
+        while (operators.length > 0) {
+            output.push(operators.pop());
+        }
+        var expressionTreeNodes = addArrayFunctions ? addArrayFunctions([]) : [];
+        var aggregationFunctions, variableReferences = [];
+        var currentOutput, non_deterministic = false;
+        while (output.length > 0) {
+            currentOutput = output.shift();
+            if (currentOutput.isOperator) {
+                currentOutput.v.rhs = expressionTreeNodes.pop().v;
+                currentOutput.v.lhs = expressionTreeNodes.pop().v;
+            } else if (currentOutput.isFunction) {
+                currentOutput.v.p = [];
+                for (var j = 0; j < currentOutput.v.parsedParameterCount(); j++) {
+                    currentOutput.v.p.unshift(expressionTreeNodes.pop().v);
+                }
+                if (currentOutput.isAggregateFunction) {
+                    if (!aggregationFunctions) {
+                        aggregationFunctions = [];
+                    }
+                    aggregationFunctions.push(currentOutput.v);
+                }
+                if (currentOutput.v.element().non_deterministic) {
+                    non_deterministic = true;
+                }
+            }
+
+            if (currentOutput.isVariable) {
+                variableReferences.push(currentOutput.v.element().getKey());
+            }
+
+            if (currentOutput.v.lookups) {
+                var lookup, lookups = currentOutput.v.lookups, tmpElement;
+                while (lookups && lookups.length > 0) {
+                    tmpElement = currentOutput.v;
+                    lookup = lookups.shift();
+                    currentOutput.v = new ExpressionElement(lookup.function);
+                    currentOutput.v.p = [tmpElement, lookup.index];
+                }
+            }
+
+            expressionTreeNodes.push(currentOutput);
+        }
+        if (expressionTreeNodes.length == 0) {
+            return null;
+        }
+        var expression = new Expression(
+            expressionTreeNodes.pop().v,
+            'expr',
+            aggregationFunctions,
+            engine.statement().context(),
+            variableReferences,
+            non_deterministic
+        );
+        for (var i = 0; i < expressionElements.length; i++) {
+            expressionElements[i].setExpression(expression);
+        }
+        reset();
+        return expression;
+    };
+    this.getExpression = function() {
+        return finish();
+    };
+
     var validVariableName = function() {
         if ((_Function.isFunction(token, 0) && openingParentheses(true)) ||
             (AggregateFunction.isAggregateFunction(token, 0) && openingParentheses(true)) ||
@@ -1323,6 +1752,26 @@ function Parser(_engine) {
     var match = function() { return keyword(KeyWord.f.MATCH); };
     var merge = function() { return keyword(KeyWord.f.MERGE); };
     var shortestpath = function() { return keyword(KeyWord.f.SHORTESTPATH); };
+    var _function = function() {
+        var charsToAccumulate = 0;
+        if ((charsToAccumulate = _Function.isFunction(statementText, position)) > 0) {
+            position += charsToAccumulate;
+            if (openingParentheses(true, true)) {
+                return true;
+            }
+            position -= charsToAccumulate;
+            return false;
+        }
+        return false;
+    };
+    var aggregateFunction = function() {
+        var charsToAccumulate = 0;
+        if ((charsToAccumulate = AggregateFunction.isAggregateFunction(statementText, position)) > 0) {
+            position += charsToAccumulate;
+            return true;
+        }
+        return false;
+    };
     var _with = function(noAction) { return keyword(KeyWord.f.WITH, noAction); };
     var _return = function() { return keyword(KeyWord.f.RETURN); };
     var into = function() { return keyword(KeyWord.f.INTO); };

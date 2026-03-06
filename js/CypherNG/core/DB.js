@@ -537,8 +537,8 @@ function DB(engine) {
             require('./References.js').NodeReference :
             CypherNG.core.NodeReference);
         var Unwind = (typeof module !== 'undefined' && module.exports ?
-            require('../query/Unwind.js').Unwind :
-            CypherNG.query.Unwind);
+            require('../query/operations/Unwind.js').Unwind :
+            CypherNG.query.operations.Unwind);
 
         var nodeInstance;
 
@@ -619,8 +619,8 @@ function DB(engine) {
             require('./Matchers.js').Matcher :
             CypherNG.core.Matcher);
         var Unwind = (typeof module !== 'undefined' && module.exports ?
-            require('../query/Unwind.js').Unwind :
-            CypherNG.query.Unwind);
+            require('../query/operations/Unwind.js').Unwind :
+            CypherNG.query.operations.Unwind);
         var Node = (typeof module !== 'undefined' && module.exports ?
             require('./Node.js').Node :
             CypherNG.core.Node);

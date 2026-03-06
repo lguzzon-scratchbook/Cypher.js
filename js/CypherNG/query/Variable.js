@@ -3,6 +3,10 @@
  * Represents a variable reference in a query.
  */
 
+var Constant = (typeof module !== 'undefined' && module.exports ?
+    require('../structures/Constant.js').Constant :
+    CypherNG.structures.Constant);
+
 /**
  * Variable - Represents a variable reference in a query.
  * Variables hold references to nodes, relationships, or computed values.

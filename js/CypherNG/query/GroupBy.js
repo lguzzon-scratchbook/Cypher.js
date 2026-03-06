@@ -3,6 +3,16 @@
  * Represents GROUP BY using trie data structure.
  */
 
+var StringRecoder = (typeof module !== 'undefined' && module.exports ?
+    require('../structures/utils.js').StringRecoder :
+    CypherNG.structures.StringRecoder);
+var NodeReference = (typeof module !== 'undefined' && module.exports ?
+    require('../core/References.js').NodeReference :
+    CypherNG.core.NodeReference);
+var RelationshipReference = (typeof module !== 'undefined' && module.exports ?
+    require('../core/References.js').RelationshipReference :
+    CypherNG.core.RelationshipReference);
+
 /**
  * GroupBy - Represents GROUP BY operation using a trie.
  * Manages grouping and aggregation for query results.

@@ -46,7 +46,7 @@ function Predicate() {
      */
     this.variable = function(_variableName) {
         var Variable = (typeof module !== 'undefined' && module.exports ?
-            require('../query/Expression.js').Variable :
+            require('../query/Variable.js').Variable :
             CypherNG.query.Variable);
         _variable = new Variable(null, _variableName);
     };

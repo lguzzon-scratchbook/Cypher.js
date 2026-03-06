@@ -3,6 +3,13 @@
  * Represents a query expression with aggregation support.
  */
 
+var List = (typeof module !== 'undefined' && module.exports ?
+    require('../structures/List.js').List :
+    CypherNG.structures.List);
+var AssociativeArray = (typeof module !== 'undefined' && module.exports ?
+    require('../structures/AssociativeArray.js').AssociativeArray :
+    CypherNG.structures.AssociativeArray);
+
 /**
  * Expression - Represents a query expression with aggregation support.
  * Used in RETURN, WHERE, and other clauses to define computed values.
